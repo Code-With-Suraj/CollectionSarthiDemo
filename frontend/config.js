@@ -5,7 +5,7 @@
 const API_CONFIG = {
   // Replace with your Google Apps Script Web App deployment URL:
   // e.g., "https://script.google.com/macros/s/AKfycbx.../exec"
-  BASE_URL: "https://script.google.com/macros/s/AKfycby_Y6zYEDfmu5ZIes1Ea8lD_m6QfDLlKAQHWP9OnZTNa5_PtFKbQ-M2IdRGtaXmPCWp/exec",
+  BASE_URL: "https://script.google.com/macros/s/AKfycbxmEMAba4hdonMPPMGMJYVzWroa8ZXBb8Rz6LKNM3aqQzmKstNxtucGzmf81icN-aeL/exec",
 
   // Demo Mode: Disabled to enforce 100% Live Google Sheet data
   DEMO_MODE_IF_EMPTY: false,
@@ -44,7 +44,7 @@ const SUBSCRIPTION_CONFIG = {
       actionCenterLimit: 10,
       actionCenterPrioritySort: false,
       agingAnalysis: "BASIC", // Basic Summary
-      whatsApp: "DIRECT", // 1-Click WhatsApp Direct
+      whatsApp: "DIRECT", // 1-Click WhatsApp Direct (Standard Plain Text only)
       ptpTracker: false, // Promise to Pay Tracker: NO
       riskScoring: false, // Risk Scoring: NO
       dataImport: true,
@@ -54,9 +54,10 @@ const SUBSCRIPTION_CONFIG = {
         { label: "Up to 100 Active Debtors / Customers", enabled: true },
         { label: "Today's Action Center (10 items / page)", enabled: true },
         { label: "Basic Aging Analysis (30-60-90+ Days)", enabled: true },
-        { label: "1-Click Direct WhatsApp Reminders", enabled: true },
+        { label: "1-Click Direct WhatsApp Reminders (Standard Text)", enabled: true },
         { label: "Data Import (CSV / Sheet)", enabled: true },
         { label: "Standard Business Support", enabled: true },
+        { label: "13+ Persuasive WhatsApp Templates Library", enabled: false },
         { label: "Promise to Pay (PTP) Commitment Tracker", enabled: false },
         { label: "Bad Debt Risk Scoring & Early Alerts", enabled: false },
         { label: "Action Center Priority Sorting", enabled: false }
@@ -85,6 +86,7 @@ const SUBSCRIPTION_CONFIG = {
         { label: "Up to 500 Active Debtors / Customers", enabled: true },
         { label: "Today's Action Center with Priority Sorting", enabled: true },
         { label: "Full Detailed Aging Breakdown & Export", enabled: true },
+        { label: "13+ High-Converting WhatsApp Templates Library", enabled: true },
         { label: "WhatsApp Custom Templates & Auto Quick-Logs", enabled: true },
         { label: "Promise to Pay (PTP) Tracker with Alert History", enabled: true },
         { label: "AI Bad Debt Risk Scoring & Red-Alerts", enabled: true },

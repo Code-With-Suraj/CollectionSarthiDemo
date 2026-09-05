@@ -562,7 +562,7 @@ const Modals = {
                 </li>
                 <li class="flex items-center gap-2">
                   <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                  <span><b>WhatsApp Custom Templates & Quick Auto-Logs</b></span>
+                  <span><b>13+ High-Converting WhatsApp Templates & Quick Auto-Logs</b></span>
                 </li>
               </ul>
             </div>
@@ -690,7 +690,12 @@ const Modals = {
 
     let defaultKey = "gentle";
     if (amount > 0 && Number(amount) > 100000) defaultKey = "supplier_cashflow";
-    let selectedMsg = templates[defaultKey] ? templates[defaultKey].text : templates.gentle.text;
+
+    // Growth Plan gets 13+ Persuasive Templates library; Starter gets standard direct reminder
+    const starterBasicMsg = `Dear ${name}, namaskar! This is a reminder from ${biz} regarding pending balance of ₹${amtStr}. Kindly arrange for payment clearance at your earliest convenience. Thank you!`;
+    const selectedMsg = isPro
+      ? (templates[defaultKey] ? templates[defaultKey].text : templates.gentle.text)
+      : starterBasicMsg;
 
     this.container.innerHTML = `
       <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -702,7 +707,7 @@ const Modals = {
               </div>
               <div>
                 <h3 class="text-base font-bold leading-tight">Instant WhatsApp Reminder</h3>
-                <p class="text-xs text-emerald-100">Deep-link direct sending with persuasive templates</p>
+                <p class="text-xs text-emerald-100">${isPro ? "Deep-link direct sending with persuasive templates" : "Direct WhatsApp Reminder (Starter Mode)"}</p>
               </div>
             </div>
             <button onclick="Modals.close()" class="text-white/80 hover:text-white text-xl font-bold p-1">&times;</button>
@@ -722,22 +727,41 @@ const Modals = {
               </div>
             </div>
 
-            <!-- Template Picker -->
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <label class="block text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
-                  <span>Select Reminder Template</span>
-                  <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">13 Persuasive Templates</span>
-                </label>
+            <!-- Template Picker for Growth OR Locked Banner for Starter -->
+            ${isPro ? `
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="block text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
+                    <span>Select Reminder Template</span>
+                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">👑 13 Persuasive Templates</span>
+                  </label>
+                </div>
+                <select id="wa-template-select" onchange="Modals.handleTemplateChange(this.value)" class="w-full text-xs font-semibold border border-indigo-200 bg-indigo-50/50 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-sm">
+                  ${Object.keys(templates).map(k => `
+                    <option value="${k}" ${k === defaultKey ? "selected" : ""}>
+                      ${templates[k].title}
+                    </option>
+                  `).join("")}
+                </select>
               </div>
-              <select id="wa-template-select" onchange="Modals.handleTemplateChange(this.value)" class="w-full text-xs font-semibold border border-indigo-200 bg-indigo-50/50 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-sm">
-                ${Object.keys(templates).map(k => `
-                  <option value="${k}" ${k === defaultKey ? "selected" : ""}>
-                    ${templates[k].title}
-                  </option>
-                `).join("")}
-              </select>
-            </div>
+            ` : `
+              <div class="p-3.5 bg-gradient-to-r from-amber-50 to-indigo-50 border border-amber-200/80 rounded-xl">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-1.5 text-xs font-black text-amber-950">
+                      <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+                      <span>13+ Persuasive WhatsApp Templates (Growth Plan Feature)</span>
+                    </div>
+                    <p class="text-[11px] text-slate-600 leading-relaxed">
+                      Starter plan includes standard basic text. Upgrade to <b>Growth Plan (Sarthi Pro)</b> to unlock 13 high-converting templates: <i>Gentle, PTP Followup, Dispatch Hold, Statutory GST, Legal Notices & more</i>.
+                    </p>
+                  </div>
+                  <button type="button" onclick="Modals.openUpgradeModal('Unlock 13+ High-Converting WhatsApp Templates Library (Gentle, PTP, Credit Hold, Legal Notice)')" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-black tracking-wide shadow-sm flex-shrink-0 flex items-center gap-1 active:scale-95 transition-all">
+                    <span>⚡ Unlock</span>
+                  </button>
+                </div>
+              </div>
+            `}
 
             <!-- Message Preview & Character Count -->
             <div>
@@ -781,6 +805,10 @@ const Modals = {
   },
 
   handleTemplateChange: function(type) {
+    if (!Store.isPro()) {
+      Modals.openUpgradeModal("Unlock 13+ High-Converting WhatsApp Templates Library");
+      return;
+    }
     const preview = document.getElementById("wa-text-preview");
     const counter = document.getElementById("wa-char-count");
     if (preview && this._waTemplates && this._waTemplates[type]) {

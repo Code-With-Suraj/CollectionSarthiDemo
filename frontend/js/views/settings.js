@@ -37,6 +37,7 @@ const SettingsView = {
     if (!container || !this.settings) return;
 
     const s = this.settings;
+    const isPro = Store.isPro();
 
     container.innerHTML = `
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -74,25 +75,34 @@ const SettingsView = {
             <div>
               <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h2 class="text-base font-bold text-slate-900">WhatsApp Reminder Message Template</h2>
-                <div class="flex items-center gap-2">
-                  <label class="text-[11px] font-semibold text-indigo-700">Load Preset:</label>
-                  <select onchange="SettingsView.loadPresetTemplate(this.value)" class="text-xs font-semibold border border-indigo-200 bg-indigo-50/50 rounded-lg px-2 py-1 focus:outline-none">
-                    <option value="">-- Choose 1 of 13 Templates --</option>
-                    <option value="gentle">1. Gentle Courtesy Reminder</option>
-                    <option value="reconcile">2. Statement & Reconciliation Enquiry</option>
-                    <option value="due_today">3. Payment Due Today Alert</option>
-                    <option value="ptp_commitment">4. Promised Date (PTP) Commitment</option>
-                    <option value="supplier_cashflow">5. Supplier Cash Flow & Vendor Appeal</option>
-                    <option value="dispatch_hold">6. Order Dispatch Hold Warning</option>
-                    <option value="director_appeal">7. Director Direct Personal Appeal</option>
-                    <option value="audit_gst">8. Month-End & GST Audit Compliance</option>
-                    <option value="installment_offer">9. 50% Token / Installment Offer</option>
-                    <option value="banking_utr">10. Banking UTR & Reference Request</option>
-                    <option value="pre_legal">11. Pre-Legal Caution Notice</option>
-                    <option value="legal_demand">12. Final Legal Demand Notice (48h)</option>
-                    <option value="thank_you">13. Payment Received & Thank You</option>
-                  </select>
-                </div>
+                ${isPro ? `
+                  <div class="flex items-center gap-2">
+                    <label class="text-[11px] font-semibold text-indigo-700">Load Preset:</label>
+                    <select onchange="SettingsView.loadPresetTemplate(this.value)" class="text-xs font-semibold border border-indigo-200 bg-indigo-50/50 rounded-lg px-2 py-1 focus:outline-none">
+                      <option value="">-- Choose 1 of 13 Templates --</option>
+                      <option value="gentle">1. Gentle Courtesy Reminder</option>
+                      <option value="reconcile">2. Statement & Reconciliation Enquiry</option>
+                      <option value="due_today">3. Payment Due Today Alert</option>
+                      <option value="ptp_commitment">4. Promised Date (PTP) Commitment</option>
+                      <option value="supplier_cashflow">5. Supplier Cash Flow & Vendor Appeal</option>
+                      <option value="dispatch_hold">6. Order Dispatch Hold Warning</option>
+                      <option value="director_appeal">7. Director Direct Personal Appeal</option>
+                      <option value="audit_gst">8. Month-End & GST Audit Compliance</option>
+                      <option value="installment_offer">9. 50% Token / Installment Offer</option>
+                      <option value="banking_utr">10. Banking UTR & Reference Request</option>
+                      <option value="pre_legal">11. Pre-Legal Caution Notice</option>
+                      <option value="legal_demand">12. Final Legal Demand Notice (48h)</option>
+                      <option value="thank_you">13. Payment Received & Thank You</option>
+                    </select>
+                  </div>
+                ` : `
+                  <div class="flex items-center gap-1.5">
+                    <button type="button" onclick="Modals.openUpgradeModal('Unlock 13+ High-Converting WhatsApp Reminder Templates (Gentle, PTP, Hold, Legal Notice)')" class="text-xs font-bold text-amber-900 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg px-2.5 py-1 flex items-center gap-1 transition-colors">
+                      <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+                      <span>🔒 13 Presets (Growth Plan)</span>
+                    </button>
+                  </div>
+                `}
               </div>
               <div class="mt-4 space-y-2">
                 <label class="block text-xs font-semibold uppercase text-slate-500">Default Template Text</label>
@@ -201,6 +211,10 @@ const SettingsView = {
   },
 
   loadPresetTemplate: function(key) {
+    if (!Store.isPro()) {
+      Modals.openUpgradeModal("Unlock 13+ High-Converting WhatsApp Reminder Templates Library");
+      return;
+    }
     if (!key || !Modals.getWhatsAppTemplates) return;
     const biz = (Store.state.settings && Store.state.settings.BUSINESS_NAME) || "Apex Supplies";
     const templates = Modals.getWhatsAppTemplates("{{customer_name}}", "{{amount}}", biz);

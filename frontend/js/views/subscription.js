@@ -466,7 +466,7 @@ const SubscriptionView = {
     `;
   },
 
-  subscribePlan: function(planId) {
+  subscribePlan: async function(planId) {
     const rawPlans = (this.subData && this.subData.plans) || Store.getPlans();
     const plan = rawPlans[planId] || (typeof SUBSCRIPTION_CONFIG !== "undefined" && SUBSCRIPTION_CONFIG.PLANS && SUBSCRIPTION_CONFIG.PLANS[planId]);
     if (!plan) {
@@ -486,6 +486,22 @@ const SubscriptionView = {
       return;
     }
 
+    // Pre-create Razorpay Order with payment_capture: 1 for guaranteed automatic capture
+    let createdOrderId = "";
+    try {
+      if (typeof Toast !== "undefined") Toast.info("Preparing secure auto-capture checkout...");
+      const orderRes = await Api.call("createRazorpayOrder", {
+        planId: planId,
+        billingCycle: cycle,
+        email: currentUser.email
+      });
+      if (orderRes && orderRes.orderId) {
+        createdOrderId = orderRes.orderId;
+      }
+    } catch (orderErr) {
+      console.warn("Order creation fallback to standard checkout:", orderErr);
+    }
+
     const options = {
       key: razorpayKey,
       amount: amountInPaise,
@@ -493,14 +509,15 @@ const SubscriptionView = {
       name: (typeof BRAND_CONFIG !== "undefined" && BRAND_CONFIG.name) || "CollectionSarthi",
       description: `${plan.name} (${cycle === "YEARLY" ? "Annual" : "Monthly"} Subscription)`,
       image: "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4b0.png",
+      ...(createdOrderId ? { order_id: createdOrderId } : {}),
       handler: async function(response) {
-        if (typeof Toast !== "undefined") Toast.info("Payment confirmed! Activating your subscription...");
+        if (typeof Toast !== "undefined") Toast.info("Payment confirmed! Capturing & activating subscription...");
         try {
           const actResult = await Api.call("activateSubscription", {
             planId: planId,
             billingCycle: cycle,
             paymentId: response.razorpay_payment_id || ("pay_live_" + Date.now()),
-            orderId: response.razorpay_order_id || "",
+            orderId: response.razorpay_order_id || createdOrderId || "",
             signature: response.razorpay_signature || "",
             email: currentUser.email
           });

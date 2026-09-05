@@ -143,26 +143,7 @@ const Auth = {
   renderLoginForm: function() {
     return `
       <div>
-        <!-- Demo Quick Credentials Box -->
-        <div class="p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl text-xs text-indigo-900 space-y-1.5">
-          <div class="font-bold flex items-center justify-between text-indigo-800">
-            <span class="flex items-center gap-1">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              Quick Demo Logins:
-            </span>
-            <button type="button" onclick="Auth.switchTab('register')" class="text-[11px] text-indigo-600 hover:underline font-bold">+ Replace With My User</button>
-          </div>
-          <div class="flex justify-between items-center pt-0.5">
-            <span>Owner: <code class="font-mono text-indigo-600 font-semibold">admin@collectionsarthi.com</code></span>
-            <button type="button" onclick="Auth.prefill('admin@collectionsarthi.com', 'admin123')" class="px-2 py-0.5 bg-indigo-600 text-white rounded text-[11px] font-semibold hover:bg-indigo-700 transition-colors">Auto-fill</button>
-          </div>
-          <div class="flex justify-between items-center pt-0.5">
-            <span>Collector: <code class="font-mono text-indigo-600 font-semibold">rahul@collectionsarthi.com</code></span>
-            <button type="button" onclick="Auth.prefill('rahul@collectionsarthi.com', 'exec123')" class="px-2 py-0.5 bg-slate-200 text-slate-700 rounded text-[11px] font-semibold hover:bg-slate-300 transition-colors">Auto-fill</button>
-          </div>
-        </div>
-
-        <form class="mt-5 space-y-4" onsubmit="Auth.handleLogin(event)">
+        <form class="space-y-4" onsubmit="Auth.handleLogin(event)">
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Email Address</label>
             <input type="email" id="login-email" required placeholder="owner@mycompany.com" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">

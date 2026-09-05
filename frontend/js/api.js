@@ -89,7 +89,7 @@ const Api = {
     const db = window.__CS_DEMO_DB;
 
     // Guard simulated protected routes if subscription is expired
-    const exemptActions = ["login", "registerUser", "logout", "getCurrentUser", "getSubscription", "syncSubscription", "activateSubscription", "getPlans"];
+    const exemptActions = ["login", "registerUser", "logout", "getCurrentUser", "getSubscription", "syncSubscription", "createRazorpayOrder", "activateSubscription", "getPlans"];
     if (exemptActions.indexOf(action) === -1 && db.subscription && (db.subscription.status === "EXPIRED" || db.subscription.isExpired)) {
       if (typeof App !== "undefined" && App.lockExpiredSubscription) {
         App.lockExpiredSubscription();
@@ -281,6 +281,17 @@ const Api = {
           };
         }
         return db.subscription;
+
+      case "createRazorpayOrder":
+        const reqPlan = (SUBSCRIPTION_CONFIG.PLANS && SUBSCRIPTION_CONFIG.PLANS[data.planId]) || (SUBSCRIPTION_CONFIG.PLANS && SUBSCRIPTION_CONFIG.PLANS.GROWTH) || { monthlyPrice: 599, yearlyPrice: 5999 };
+        const reqAmt = (data.billingCycle === "YEARLY" ? reqPlan.yearlyPrice : reqPlan.monthlyPrice) * 100;
+        return {
+          orderId: "order_mock_" + Date.now(),
+          amount: reqAmt,
+          currency: "INR",
+          keyId: SUBSCRIPTION_CONFIG.RAZORPAY_KEY_ID,
+          autoCapture: true
+        };
 
       case "activateSubscription":
         const planId = data.planId || "GROWTH";
