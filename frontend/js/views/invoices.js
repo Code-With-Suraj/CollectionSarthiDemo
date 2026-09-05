@@ -11,10 +11,16 @@ const InvoicesView = {
             <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Invoice Ledger</h1>
             <p class="text-sm text-slate-500">Track all receivables, due dates, payments, and aging status</p>
           </div>
-          <button onclick="InvoicesView.openNewInvoiceModal()" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm flex items-center gap-1.5 self-start sm:self-auto">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Add Invoice
-          </button>
+          <div class="flex items-center gap-2 self-start sm:self-auto">
+            <button onclick="Modals.openBulkCsvModal('invoices')" class="px-3.5 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg shadow-sm flex items-center gap-1.5 active:scale-95 transition-all" title="Bulk Import Invoices from CSV">
+              <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+              Bulk CSV Import
+            </button>
+            <button onclick="InvoicesView.openNewInvoiceModal()" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm flex items-center gap-1.5 active:scale-95 transition-all">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Add Invoice
+            </button>
+          </div>
         </div>
 
         <!-- Filter bar -->

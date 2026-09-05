@@ -227,6 +227,34 @@ const OutstandingView = {
     const panel = document.getElementById("selected-bucket-debtors-panel");
     if (!panel || !this.data) return;
 
+    // Feature Gating: Starter Plan gets Basic Summary only
+    if (Store.getPlan().agingAnalysis === "BASIC") {
+      panel.innerHTML = `
+        <div class="relative overflow-hidden rounded-2xl border-2 border-dashed border-indigo-200 bg-gradient-to-b from-indigo-50/50 to-white p-8 text-center space-y-4">
+          <div class="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mx-auto text-2xl shadow-lg shadow-indigo-600/30">
+            👑
+          </div>
+          <div class="max-w-md mx-auto space-y-1.5">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-200">
+              Sarthi Pro Feature
+            </span>
+            <h3 class="text-lg font-bold text-slate-900">Detailed Customer Breakdown & Invoice Drilldown</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Your <b>Starter Plan (Vyapar Plan)</b> includes the High-Level Summary Statement and Aging Distribution Donut above. Unlock customer-by-customer invoice tracking, individual bill drilldown, and 1-click bucket exports with <b>Growth Plan (Sarthi Pro)</b>.
+            </p>
+          </div>
+
+          <div class="pt-2 flex justify-center items-center gap-3">
+            <button onclick="Modals.openUpgradeModal('Full Detailed Aging Breakdown', 'View individual customer invoice lists, days overdue per bill, and export customer statements.')" class="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 active:scale-95 transition-all flex items-center gap-1.5">
+              <span>⚡ Unlock Full Breakdown with Sarthi Pro</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     const aging = this.data.aging || {};
     let bucketTitle = "All Debtors";
     let debtors = [];
@@ -419,6 +447,15 @@ const OutstandingView = {
 
   exportCurrentBucket: function() {
     if (!this.data) return;
+
+    if (Store.getPlan().agingAnalysis === "BASIC") {
+      Modals.openUpgradeModal(
+        "Aging Analysis CSV Export",
+        "Export comprehensive customer aging statements with individual invoice numbers, dates, and overdue brackets directly to Excel/CSV. Included in Growth Plan (Sarthi Pro)."
+      );
+      return;
+    }
+
     const aging = this.data.aging || {};
     let list = [];
     if (this.selectedBucket === "all") {

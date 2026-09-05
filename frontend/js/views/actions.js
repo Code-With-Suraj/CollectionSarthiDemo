@@ -9,12 +9,14 @@ const ActionsView = {
   currentPage: 1,
   pageSize: 10,
   searchTerm: "",
+  sortBy: "default", // "default", "risk", "amount", "overdue"
   data: null,
   isRefreshing: false,
 
   render: async function(container) {
     this.searchTerm = "";
     this.currentPage = 1;
+    this.sortBy = "default";
 
     // Fast cache check: if data is already cached, render immediately (0ms delay!)
     const cached = Store.getCached("actions");
@@ -34,6 +36,9 @@ const ActionsView = {
   renderShell: function(container, showSkeleton = false) {
     const counts = this.getTabCounts();
     const stats = this.getSummaryStats();
+    const isPro = Store.isPro();
+    const hasPtp = Store.hasFeature("ptpTracker");
+    const hasSort = Store.hasFeature("actionCenterPrioritySort");
 
     container.innerHTML = `
       <div class="space-y-6">
@@ -42,8 +47,8 @@ const ActionsView = {
           <div>
             <div class="flex items-center gap-2">
               <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Today's Action Center</h1>
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                10 per page
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${isPro ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'}">
+                ${isPro ? '⚡ Priority Ranked (Pro)' : '10 per page'}
               </span>
             </div>
             <p class="text-sm text-slate-500">Targeted daily recovery tasks: Call, WhatsApp, follow up, and collect.</p>
@@ -61,15 +66,32 @@ const ActionsView = {
           ${this.renderStatsBar(stats)}
         </div>
 
-        <!-- Filter & Search Controls -->
+        <!-- Filter, Search & Priority Sort Controls -->
         <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
           <div class="w-full sm:w-80 relative">
             <input type="text" id="actions-search-input" value="${Utils.escapeHtml(this.searchTerm)}" placeholder="Search debtor, phone, or reason..." class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" oninput="ActionsView.handleSearch(this.value)">
             <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           </div>
 
-          <div class="flex items-center gap-2 text-xs text-slate-500 self-end sm:self-auto">
-            <span>Displaying <b>10 items</b> per page</span>
+          <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            <!-- Priority Sorting Dropdown -->
+            <div class="flex items-center gap-1.5 text-xs">
+              <span class="text-slate-500 font-medium">Sort:</span>
+              <select onchange="ActionsView.handleSort(this.value)" class="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="default" ${this.sortBy === 'default' ? 'selected' : ''}>Standard Due Date</option>
+                ${hasSort ? `
+                  <option value="risk" ${this.sortBy === 'risk' ? 'selected' : ''}>⚡ Highest Risk First</option>
+                  <option value="amount" ${this.sortBy === 'amount' ? 'selected' : ''}>💰 Highest Amount First</option>
+                  <option value="overdue" ${this.sortBy === 'overdue' ? 'selected' : ''}>⏳ Oldest Overdue First</option>
+                ` : `
+                  <option value="pro_locked">👑 Priority Sorting (Pro)</option>
+                `}
+              </select>
+            </div>
+
+            <div class="text-xs text-slate-400 hidden sm:block">
+              <span><b>10 items</b> / page</span>
+            </div>
           </div>
         </div>
 
@@ -79,22 +101,35 @@ const ActionsView = {
             <span>All Action Items</span>
             <span id="badge-all" class="px-2 py-0.5 text-xs rounded-full ${this.currentTab === 'all' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}">${counts.all}</span>
           </button>
+          
           <button onclick="ActionsView.switchTab('promises')" id="tab-promises" class="px-4 py-2.5 border-b-2 ${this.currentTab === 'promises' ? 'border-indigo-600 text-indigo-600' : 'border-transparent hover:text-slate-700'} whitespace-nowrap flex items-center gap-1.5 transition-colors">
             <span>Promises Due Today</span>
-            <span id="badge-promises" class="px-2 py-0.5 text-xs rounded-full ${this.currentTab === 'promises' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}">${counts.promises}</span>
+            ${hasPtp ? `
+              <span id="badge-promises" class="px-2 py-0.5 text-xs rounded-full ${this.currentTab === 'promises' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}">${counts.promises}</span>
+            ` : `
+              <span class="px-1.5 py-0.5 text-[10px] font-black rounded-md bg-amber-100 text-amber-800 flex items-center gap-0.5">🔒 Pro</span>
+            `}
           </button>
+          
           <button onclick="ActionsView.switchTab('broken')" id="tab-broken" class="px-4 py-2.5 border-b-2 ${this.currentTab === 'broken' ? 'border-indigo-600 text-indigo-600' : 'border-transparent hover:text-slate-700'} whitespace-nowrap flex items-center gap-1.5 transition-colors">
             <span>Broken Promises</span>
-            <span id="badge-broken" class="px-2 py-0.5 text-xs rounded-full ${this.currentTab === 'broken' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}">${counts.broken}</span>
+            ${hasPtp ? `
+              <span id="badge-broken" class="px-2 py-0.5 text-xs rounded-full ${this.currentTab === 'broken' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}">${counts.broken}</span>
+            ` : `
+              <span class="px-1.5 py-0.5 text-[10px] font-black rounded-md bg-amber-100 text-amber-800 flex items-center gap-0.5">🔒 Pro</span>
+            `}
           </button>
+
           <button onclick="ActionsView.switchTab('dueToday')" id="tab-dueToday" class="px-4 py-2.5 border-b-2 ${this.currentTab === 'dueToday' ? 'border-indigo-600 text-indigo-600' : 'border-transparent hover:text-slate-700'} whitespace-nowrap flex items-center gap-1.5 transition-colors">
             <span>Due Today</span>
             <span id="badge-dueToday" class="px-2 py-0.5 text-xs rounded-full ${this.currentTab === 'dueToday' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}">${counts.dueToday}</span>
           </button>
+
           <button onclick="ActionsView.switchTab('overdue')" id="tab-overdue" class="px-4 py-2.5 border-b-2 ${this.currentTab === 'overdue' ? 'border-indigo-600 text-indigo-600' : 'border-transparent hover:text-slate-700'} whitespace-nowrap flex items-center gap-1.5 transition-colors">
             <span>Overdue Accounts</span>
             <span id="badge-overdue" class="px-2 py-0.5 text-xs rounded-full ${this.currentTab === 'overdue' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}">${counts.overdue}</span>
           </button>
+
           <button onclick="ActionsView.switchTab('noContact')" id="tab-noContact" class="px-4 py-2.5 border-b-2 ${this.currentTab === 'noContact' ? 'border-indigo-600 text-indigo-600' : 'border-transparent hover:text-slate-700'} whitespace-nowrap flex items-center gap-1.5 transition-colors">
             <span>No Follow-up 7+ Days</span>
             <span id="badge-noContact" class="px-2 py-0.5 text-xs rounded-full ${this.currentTab === 'noContact' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}">${counts.noContact}</span>
@@ -217,7 +252,33 @@ const ActionsView = {
     this.renderTabContent();
   },
 
+  handleSort: function(val) {
+    if (val === "pro_locked") {
+      Modals.openUpgradeModal(
+        "Priority Recovery Sorting",
+        "Rank your recovery tasks by AI Risk Score, highest pending amount, and critical overdue days. Included with Growth Plan (Sarthi Pro)."
+      );
+      // Reset select element back to default
+      const sel = document.querySelector("select[onchange*='handleSort']");
+      if (sel) sel.value = "default";
+      this.sortBy = "default";
+      return;
+    }
+    this.sortBy = val;
+    this.currentPage = 1;
+    this.renderTabContent();
+  },
+
   switchTab: function(tab) {
+    // Feature gate for Promise to Pay Tracker
+    if ((tab === "promises" || tab === "broken") && !Store.hasFeature("ptpTracker")) {
+      Modals.openUpgradeModal(
+        "Promise to Pay (PTP) Commitment Tracker",
+        "Track customer payment commitments, log promised dates, and receive automated broken promise warnings. Upgrade to Growth Plan (Sarthi Pro)."
+      );
+      return;
+    }
+
     this.currentTab = tab;
     this.currentPage = 1; // Reset to page 1 on tab switch
 
@@ -236,12 +297,13 @@ const ActionsView = {
   getTabCounts: function() {
     if (!this.data) return { all: 0, promises: 0, broken: 0, dueToday: 0, overdue: 0, noContact: 0 };
     const d = this.data;
+    const hasPtp = Store.hasFeature("ptpTracker");
     const promises = (d.promiseDueToday || []).length;
     const broken = (d.brokenPromises || []).length;
     const dueToday = (d.dueToday || []).length;
     const overdue = (d.overdue || []).length;
     const noContact = (d.noContactWeek || []).length;
-    const all = promises + broken + dueToday + overdue + noContact;
+    const all = (hasPtp ? (promises + broken) : 0) + dueToday + overdue + noContact;
     return { all, promises, broken, dueToday, overdue, noContact };
   },
 
@@ -273,7 +335,8 @@ const ActionsView = {
 
   updateBadges: function() {
     const counts = this.getTabCounts();
-    const tabs = ["all", "promises", "broken", "dueToday", "overdue", "noContact"];
+    const hasPtp = Store.hasFeature("ptpTracker");
+    const tabs = ["all", "dueToday", "overdue", "noContact"];
     tabs.forEach(tab => {
       const badge = document.getElementById("badge-" + tab);
       if (badge) {
@@ -281,21 +344,32 @@ const ActionsView = {
         badge.className = `px-2 py-0.5 text-xs rounded-full ${this.currentTab === tab ? 'bg-indigo-100 text-indigo-700 font-bold' : 'bg-slate-100 text-slate-600'}`;
       }
     });
+
+    // PTP tabs
+    if (hasPtp) {
+      const bPromises = document.getElementById("badge-promises");
+      const bBroken = document.getElementById("badge-broken");
+      if (bPromises) bPromises.innerText = counts.promises || 0;
+      if (bBroken) bBroken.innerText = counts.broken || 0;
+    }
   },
 
   getItemsForTab: function(tab = this.currentTab, applySearch = true) {
     if (!this.data) return [];
     const d = this.data;
+    const hasPtp = Store.hasFeature("ptpTracker");
     let items = [];
 
     if (tab === "all") {
-      items = [
-        ...(d.promiseDueToday || []).map(x => ({ ...x, category: "Promise Due Today", badgeColor: "bg-emerald-100 text-emerald-800" })),
-        ...(d.brokenPromises || []).map(x => ({ ...x, category: "Broken Promise", badgeColor: "bg-red-100 text-red-800" })),
-        ...(d.dueToday || []).map(x => ({ ...x, category: "Due Today", badgeColor: "bg-blue-100 text-blue-800" })),
-        ...(d.overdue || []).map(x => ({ ...x, category: "Overdue", badgeColor: "bg-amber-100 text-amber-800" })),
-        ...(d.noContactWeek || []).map(x => ({ ...x, category: "No Contact", badgeColor: "bg-purple-100 text-purple-800" }))
-      ];
+      const list = [];
+      if (hasPtp) {
+        list.push(...(d.promiseDueToday || []).map(x => ({ ...x, category: "Promise Due Today", badgeColor: "bg-emerald-100 text-emerald-800" })));
+        list.push(...(d.brokenPromises || []).map(x => ({ ...x, category: "Broken Promise", badgeColor: "bg-red-100 text-red-800" })));
+      }
+      list.push(...(d.dueToday || []).map(x => ({ ...x, category: "Due Today", badgeColor: "bg-blue-100 text-blue-800" })));
+      list.push(...(d.overdue || []).map(x => ({ ...x, category: "Overdue", badgeColor: "bg-amber-100 text-amber-800" })));
+      list.push(...(d.noContactWeek || []).map(x => ({ ...x, category: "No Contact", badgeColor: "bg-purple-100 text-purple-800" })));
+      items = list;
     } else if (tab === "promises") {
       items = (d.promiseDueToday || []).map(x => ({ ...x, category: "Promise Due Today", badgeColor: "bg-emerald-100 text-emerald-800" }));
     } else if (tab === "broken") {
@@ -319,6 +393,19 @@ const ActionsView = {
           (item.category && item.category.toLowerCase().includes(q))
         );
       });
+    }
+
+    // Apply Priority Sorting (Available on Sarthi Pro)
+    if (this.sortBy === "risk") {
+      items.sort((a, b) => ((b.customer && b.customer.metrics && b.customer.metrics.score) || 0) - ((a.customer && a.customer.metrics && a.customer.metrics.score) || 0));
+    } else if (this.sortBy === "amount") {
+      items.sort((a, b) => {
+        const amtB = (b.customer && b.customer.metrics && b.customer.metrics.totalOutstanding) || b.amount || 0;
+        const amtA = (a.customer && a.customer.metrics && a.customer.metrics.totalOutstanding) || a.amount || 0;
+        return amtB - amtA;
+      });
+    } else if (this.sortBy === "overdue") {
+      items.sort((a, b) => ((b.customer && b.customer.metrics && b.customer.metrics.maxOverdueDays) || 0) - ((a.customer && a.customer.metrics && a.customer.metrics.maxOverdueDays) || 0));
     }
 
     return items;
@@ -373,7 +460,7 @@ const ActionsView = {
                     <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${item.badgeColor || 'bg-slate-100 text-slate-700'}">
                       ${item.category}
                     </span>
-                    ${c.metrics ? Utils.getRiskBadge(c.metrics.level) : ""}
+                    ${Store.hasFeature('riskScoring') && c.metrics ? Utils.getRiskBadge(c.metrics.level) : ''}
                   </div>
                   <div class="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
                     <span class="font-medium text-slate-700">${item.reason}</span>
@@ -394,7 +481,7 @@ const ActionsView = {
                   <a href="${Utils.getTelUrl(c.Phone)}" class="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 shadow-sm transition-colors" title="Call">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
                   </a>
-                  <button onclick="Modals.openWhatsAppSender('${c.WhatsApp || c.Phone}', '${Utils.escapeHtml(c.CustomerName)}', ${outAmt})" class="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 shadow-sm transition-colors" title="WhatsApp Reminder">
+                  <button onclick="Modals.openWhatsAppSender('${c.WhatsApp || c.Phone}', '${Utils.escapeHtml(c.CustomerName)}', ${outAmt}, '${c.CustomerID}')" class="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 shadow-sm transition-colors" title="WhatsApp Reminder">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
                   </button>
                   <button onclick="Modals.openFollowUp('${c.CustomerID}', '${Utils.escapeHtml(c.CustomerName)}')" class="p-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 shadow-sm transition-colors" title="Log Follow-up">

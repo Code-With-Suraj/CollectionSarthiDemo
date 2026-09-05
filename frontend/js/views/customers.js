@@ -14,17 +14,30 @@ const CustomersView = {
   },
 
   renderList: async function(container) {
+    const plan = Store.getPlan();
+
     container.innerHTML = `
       <div class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Debtors & Customers</h1>
+            <div class="flex items-center gap-2.5">
+              <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Debtors & Customers</h1>
+              <span id="cust-quota-pill" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                Quota: ... / ${plan.maxCustomers}
+              </span>
+            </div>
             <p class="text-sm text-slate-500">Monitor credit exposure, payment health, and debtor risk scores</p>
           </div>
-          <button onclick="Modals.openNewCustomer()" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm flex items-center gap-1.5 self-start sm:self-auto">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Add Customer
-          </button>
+          <div class="flex items-center gap-2 self-start sm:self-auto">
+            <button onclick="Modals.openBulkCsvModal('customers')" class="px-3.5 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg shadow-sm flex items-center gap-1.5 active:scale-95 transition-all" title="Bulk Import Debtors from CSV">
+              <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+              Bulk CSV Import
+            </button>
+            <button onclick="CustomersView.openAddCustomer()" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm flex items-center gap-1.5 active:scale-95 transition-all">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Add Customer
+            </button>
+          </div>
         </div>
 
         <!-- Filter & Search Bar -->
@@ -36,11 +49,15 @@ const CustomersView = {
 
           <div class="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
             <select id="cust-risk-filter" onchange="CustomersView.handleRiskFilter(this.value)" class="text-xs font-medium border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none">
-              <option value="ALL">All Risk Levels</option>
-              <option value="CRITICAL">Critical Risk</option>
-              <option value="HIGH RISK">High Risk</option>
-              <option value="MEDIUM RISK">Medium Risk</option>
-              <option value="LOW RISK">Low Risk</option>
+              <option value="ALL">All Debtors</option>
+              ${Store.hasFeature("riskScoring") ? `
+                <option value="CRITICAL">Critical Risk</option>
+                <option value="HIGH RISK">High Risk</option>
+                <option value="MEDIUM RISK">Medium Risk</option>
+                <option value="LOW RISK">Low Risk</option>
+              ` : `
+                <option value="pro_locked">👑 Risk Filtering (Pro)</option>
+              `}
             </select>
           </div>
         </div>
@@ -78,13 +95,46 @@ const CustomersView = {
   },
 
   handleRiskFilter: function(val) {
+    if (val === "pro_locked") {
+      Modals.openUpgradeModal(
+        "Bad Debt Risk Scoring",
+        "Target high-risk accounts before they turn into bad debt. Bad debt scoring and filters are unlocked in Growth Plan (Sarthi Pro)."
+      );
+      const sel = document.getElementById("cust-risk-filter");
+      if (sel) sel.value = "ALL";
+      this.riskFilter = "ALL";
+      return;
+    }
     this.riskFilter = val;
     this.renderTable();
+  },
+
+  openAddCustomer: function() {
+    const count = (this.allCustomers || []).length;
+    const plan = Store.getPlan();
+    if (!Store.canAddCustomer(count)) {
+      Modals.openUpgradeModal(
+        `Debtor Limit Reached (${count} / ${plan.maxCustomers})`,
+        `Your ${plan.name} allows up to ${plan.maxCustomers} active customers. Upgrade to Growth Plan (Sarthi Pro) to manage up to 500 customers.`
+      );
+      return;
+    }
+    Modals.openNewCustomer();
   },
 
   renderTable: function() {
     const container = document.getElementById("customers-table-container");
     if (!container || !this.allCustomers) return;
+
+    const plan = Store.getPlan();
+    const quotaPill = document.getElementById("cust-quota-pill");
+    if (quotaPill) {
+      const isOver = this.allCustomers.length >= plan.maxCustomers;
+      quotaPill.className = `px-2.5 py-0.5 rounded-full text-xs font-bold ${
+        isOver ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+      }`;
+      quotaPill.innerText = `Debtors: ${this.allCustomers.length} / ${plan.maxCustomers}`;
+    }
 
     let filtered = this.allCustomers.filter(c => {
       const matchSearch =
@@ -148,14 +198,14 @@ const CustomersView = {
                     ${m.maxOverdueDays > 0 ? `<span class="text-xs font-normal text-rose-500 block">${m.maxOverdueDays}d overdue</span>` : ''}
                   </td>
                   <td class="px-5 py-3.5">
-                    ${Utils.getRiskBadge(m.level, m.score)}
+                    ${Store.hasFeature("riskScoring") && m.level ? Utils.getRiskBadge(m.level, m.score) : '<span class="text-xs text-slate-400 font-medium">Standard</span>'}
                   </td>
                   <td class="px-5 py-3.5 text-center">
                     <div class="inline-flex items-center gap-1.5">
                       <a href="${Utils.getTelUrl(c.Phone)}" class="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100" title="Call">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
                       </a>
-                      <button onclick="Modals.openWhatsAppSender('${c.WhatsApp || c.Phone}', '${Utils.escapeHtml(c.CustomerName)}', ${m.totalOutstanding})" class="p-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100" title="WhatsApp">
+                      <button onclick="Modals.openWhatsAppSender('${c.WhatsApp || c.Phone}', '${Utils.escapeHtml(c.CustomerName)}', ${m.totalOutstanding}, '${c.CustomerID}')" class="p-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100" title="WhatsApp">
                         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
                       </button>
                       <button onclick="Modals.openRecordPayment({ customerId: '${c.CustomerID}', amount: ${m.totalOutstanding} })" class="px-2.5 py-1 rounded-md bg-emerald-600 text-white font-medium text-xs hover:bg-emerald-700">

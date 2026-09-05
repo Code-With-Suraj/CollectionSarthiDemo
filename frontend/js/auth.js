@@ -75,13 +75,14 @@ const Auth = {
 
     try {
       const res = await Api.call("login", { email, password });
-      Store.setSession(res.user, res.token);
+      Store.setSession(res.user, res.token, res.subscription || null);
       Toast.success(`Welcome back, ${res.user.name}!`);
 
       document.getElementById("login-overlay").classList.add("hidden");
       document.getElementById("app-layout").classList.remove("hidden");
 
       App.updateUserBadge();
+      if (App.updateSubscriptionBadges) App.updateSubscriptionBadges();
       window.location.hash = "#/dashboard";
       App.router();
     } catch (err) {

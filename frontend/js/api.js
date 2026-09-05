@@ -194,6 +194,201 @@ const Api = {
       case "getUsers":
         return { users: db.users };
 
+      case "getPlans":
+        return {
+          plans: SUBSCRIPTION_CONFIG.PLANS,
+          razorpayKeyId: SUBSCRIPTION_CONFIG.RAZORPAY_KEY_ID
+        };
+
+      case "getSubscription":
+      case "syncSubscription":
+        if (!db.subscription) {
+          const exp = new Date();
+          exp.setDate(exp.getDate() + (SUBSCRIPTION_CONFIG.TRIAL_DAYS || 7));
+          db.subscription = {
+            planId: "GROWTH",
+            planName: SUBSCRIPTION_CONFIG.PLANS.GROWTH.name,
+            badge: SUBSCRIPTION_CONFIG.PLANS.GROWTH.badge,
+            status: "TRIAL",
+            isTrial: true,
+            trialDaysLeft: SUBSCRIPTION_CONFIG.TRIAL_DAYS || 7,
+            billingCycle: "TRIAL",
+            expiryDate: exp.toISOString().split("T")[0],
+            lastPaymentId: "FREE_TRIAL",
+            updatedAt: new Date().toISOString(),
+            features: SUBSCRIPTION_CONFIG.PLANS.GROWTH,
+            usage: {
+              users: { current: (db.users || []).length, max: SUBSCRIPTION_CONFIG.PLANS.GROWTH.maxUsers },
+              customers: { current: (db.customers || []).length, max: SUBSCRIPTION_CONFIG.PLANS.GROWTH.maxCustomers }
+            },
+            razorpayKeyId: SUBSCRIPTION_CONFIG.RAZORPAY_KEY_ID,
+            plans: SUBSCRIPTION_CONFIG.PLANS
+          };
+        }
+        return db.subscription;
+
+      case "activateSubscription":
+        const planId = data.planId || "GROWTH";
+        const cycle = data.billingCycle || "MONTHLY";
+        const targetPlan = SUBSCRIPTION_CONFIG.PLANS[planId] || SUBSCRIPTION_CONFIG.PLANS.GROWTH;
+        const exp = new Date();
+        if (cycle === "YEARLY") exp.setFullYear(exp.getFullYear() + 1);
+        else exp.setDate(exp.getDate() + 30);
+        
+        db.subscription = {
+          planId: planId,
+          planName: targetPlan.name,
+          badge: targetPlan.badge,
+          status: "ACTIVE",
+          isTrial: false,
+          trialDaysLeft: 0,
+          billingCycle: cycle,
+          expiryDate: exp.toISOString().split("T")[0],
+          lastPaymentId: data.paymentId || "pay_demo_" + Date.now(),
+          updatedAt: new Date().toISOString(),
+          features: targetPlan,
+          usage: {
+            users: { current: (db.users || []).length, max: targetPlan.maxUsers },
+            customers: { current: (db.customers || []).length, max: targetPlan.maxCustomers }
+          },
+          razorpayKeyId: SUBSCRIPTION_CONFIG.RAZORPAY_KEY_ID,
+          plans: SUBSCRIPTION_CONFIG.PLANS
+        };
+        Store.setSubscription(db.subscription);
+        return {
+          success: true,
+          message: "Subscription activated successfully! Welcome to " + targetPlan.name,
+          subscription: db.subscription
+        };
+
+      case "createInvoice":
+        const targetCust = db.customers.find(c => c.CustomerID === data.CustomerID);
+        const invAmt = Number(data.InvoiceAmount) || 0;
+        const todayStr = new Date().toISOString().split("T")[0];
+        const newInvSingle = {
+          InvoiceID: "INV-" + Date.now(),
+          InvoiceNo: data.InvoiceNo || "INV-" + Math.floor(Math.random() * 89999 + 10000),
+          CustomerID: data.CustomerID,
+          CustomerName: targetCust ? targetCust.CustomerName : "Customer",
+          InvoiceDate: data.InvoiceDate || todayStr,
+          DueDate: data.DueDate || todayStr,
+          InvoiceAmount: invAmt,
+          PaidAmount: 0,
+          OutstandingAmount: invAmt,
+          Status: (data.DueDate && data.DueDate < todayStr ? "OVERDUE" : "PENDING"),
+          Description: data.Description || ""
+        };
+        db.invoices.unshift(newInvSingle);
+        if (targetCust) {
+          targetCust.metrics.totalOutstanding = (targetCust.metrics.totalOutstanding || 0) + invAmt;
+        }
+        db.dashboard.kpis.totalOutstanding = (db.dashboard.kpis.totalOutstanding || 0) + invAmt;
+        return { success: true, invoice: newInvSingle };
+
+      case "batchImport":
+        const impType = data.importType;
+        const impRows = data.rows || [];
+        const todayDate = new Date().toISOString().split("T")[0];
+
+        if (impType === "customers") {
+          for (let i = 0; i < impRows.length; i++) {
+            const r = impRows[i];
+            const newCust = {
+              CustomerID: "CUS-" + (Date.now() + i),
+              CustomerCode: "CL-" + Math.floor(Math.random() * 900 + 100),
+              CustomerName: r.CustomerName,
+              BusinessName: r.BusinessName || r.CustomerName,
+              ContactPerson: r.ContactPerson || "",
+              Phone: r.Phone,
+              WhatsApp: r.Phone,
+              Email: r.Email || "",
+              City: r.City || "",
+              GSTIN: r.GSTIN || "",
+              CreditLimit: Number(r.CreditLimit) || 0,
+              CreditDays: Number(r.CreditDays) || 30,
+              Status: "ACTIVE",
+              metrics: { score: 15, level: "LOW RISK", totalOutstanding: 0, maxOverdueDays: 0, brokenPromises: 0, lastContactDays: -1 }
+            };
+            db.customers.unshift(newCust);
+          }
+        } else if (impType === "invoices") {
+          for (let i = 0; i < impRows.length; i++) {
+            const r = impRows[i];
+            let cust = db.customers.find(c => c.CustomerID === r.CustomerID || c.CustomerName.toLowerCase() === (r.CustomerName || "").toLowerCase() || (c.Phone && c.Phone.endsWith((r.Phone || "").slice(-10))));
+            if (!cust) {
+              cust = {
+                CustomerID: "CUS-" + (Date.now() + i),
+                CustomerCode: "CL-" + Math.floor(Math.random() * 900 + 100),
+                CustomerName: r.CustomerName || "Client " + (i + 1),
+                BusinessName: r.CustomerName || "Client " + (i + 1),
+                Phone: r.Phone || "9800000000",
+                WhatsApp: r.Phone || "9800000000",
+                Status: "ACTIVE",
+                metrics: { score: 20, level: "LOW RISK", totalOutstanding: 0, maxOverdueDays: 0, brokenPromises: 0, lastContactDays: -1 }
+              };
+              db.customers.unshift(cust);
+            }
+            const amt = Number(r.InvoiceAmount) || 0;
+            const isOverdue = r.DueDate && r.DueDate < todayDate;
+            const newInv = {
+              InvoiceID: "INV-" + (Date.now() + i),
+              InvoiceNo: r.InvoiceNo || ("INV-" + (Date.now() + i)),
+              CustomerID: cust.CustomerID,
+              CustomerName: cust.CustomerName,
+              InvoiceDate: r.InvoiceDate || todayDate,
+              DueDate: r.DueDate || todayDate,
+              InvoiceAmount: amt,
+              PaidAmount: 0,
+              OutstandingAmount: amt,
+              Status: isOverdue ? "OVERDUE" : "PENDING",
+              Description: r.Description || ""
+            };
+            db.invoices.unshift(newInv);
+            cust.metrics.totalOutstanding = (cust.metrics.totalOutstanding || 0) + amt;
+            db.dashboard.kpis.totalOutstanding = (db.dashboard.kpis.totalOutstanding || 0) + amt;
+          }
+        } else if (impType === "payments") {
+          for (let i = 0; i < impRows.length; i++) {
+            const r = impRows[i];
+            let cust = db.customers.find(c => c.CustomerID === r.CustomerID || c.CustomerName.toLowerCase() === (r.CustomerName || "").toLowerCase() || (c.Phone && c.Phone.endsWith((r.Phone || "").slice(-10))));
+            const pAmt = Number(r.Amount) || 0;
+            const newPay = {
+              PaymentID: "PAY-" + (Date.now() + i),
+              CustomerID: cust ? cust.CustomerID : (r.CustomerID || "CUS-101"),
+              CustomerName: cust ? cust.CustomerName : (r.CustomerName || "Customer"),
+              PaymentDate: r.PaymentDate || todayDate,
+              Amount: pAmt,
+              PaymentMode: r.PaymentMode || "UPI",
+              ReferenceNo: r.ReferenceNo || ("REF-" + Math.floor(Math.random() * 899999 + 100000)),
+              Remarks: r.Remarks || ""
+            };
+            db.payments.unshift(newPay);
+            if (cust) {
+              cust.metrics.totalOutstanding = Math.max(0, (cust.metrics.totalOutstanding || 0) - pAmt);
+            }
+            // FIFO allocation against oldest unpaid invoices
+            let unalloc = pAmt;
+            const pendingInvs = db.invoices.filter(inv => inv.CustomerID === (cust ? cust.CustomerID : r.CustomerID) && inv.OutstandingAmount > 0);
+            for (let j = 0; j < pendingInvs.length && unalloc > 0; j++) {
+              const inv = pendingInvs[j];
+              const toPay = Math.min(inv.OutstandingAmount, unalloc);
+              inv.PaidAmount += toPay;
+              inv.OutstandingAmount -= toPay;
+              if (inv.OutstandingAmount === 0) inv.Status = "PAID";
+              else inv.Status = "PARTIAL";
+              unalloc -= toPay;
+            }
+            db.dashboard.kpis.collectedThisMonth = (db.dashboard.kpis.collectedThisMonth || 0) + pAmt;
+            db.dashboard.kpis.totalOutstanding = Math.max(0, (db.dashboard.kpis.totalOutstanding || 0) - pAmt);
+          }
+        }
+
+        return {
+          success: true,
+          imported: impRows.length,
+          message: `Successfully imported ${impRows.length} ${impType}`
+        };
+
       default:
         return {};
     }

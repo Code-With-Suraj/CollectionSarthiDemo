@@ -78,6 +78,8 @@ const App = {
       UsersView.render(mainContainer);
     } else if (hash === "#/settings") {
       SettingsView.render(mainContainer);
+    } else if (hash === "#/subscription") {
+      SubscriptionView.render(mainContainer);
     } else {
       DashboardView.render(mainContainer);
     }
@@ -115,6 +117,68 @@ const App = {
     if (user.role === "COLLECTION_EXECUTIVE") {
       const adminNavs = document.querySelectorAll(".admin-only");
       adminNavs.forEach(el => el.classList.add("hidden"));
+    }
+  },
+
+  updateSubscriptionBadges: function() {
+    const isPro = Store.isPro();
+    const isTrial = Store.isTrial();
+    const isExpired = Store.isExpired();
+    const trialDaysLeft = Store.getTrialDaysLeft();
+    const plan = Store.getPlan();
+
+    const pill = document.getElementById("sidebar-plan-pill");
+    const tierIcon = document.getElementById("sidebar-tier-icon");
+    const tierName = document.getElementById("sidebar-tier-name");
+    const upgradeLink = document.getElementById("sidebar-upgrade-link");
+    const quotaMini = document.getElementById("sidebar-quota-mini");
+
+    if (pill) {
+      if (isExpired) {
+        pill.innerText = "EXPIRED";
+        pill.className = "px-2 py-0.5 text-[10px] font-black rounded-md bg-rose-500 text-white shadow-sm";
+      } else if (isTrial) {
+        pill.innerText = `${trialDaysLeft}D TRIAL`;
+        pill.className = "px-2 py-0.5 text-[10px] font-black rounded-md bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 shadow-sm";
+      } else {
+        pill.innerText = isPro ? "PRO" : "STARTER";
+        pill.className = isPro
+          ? "px-2 py-0.5 text-[10px] font-black rounded-md bg-amber-400 text-slate-950 shadow-sm"
+          : "px-2 py-0.5 text-[10px] font-black rounded-md bg-indigo-50 text-indigo-700";
+      }
+    }
+
+    if (tierIcon) {
+      if (isExpired) tierIcon.innerText = "⚠️";
+      else if (isTrial) tierIcon.innerText = "🎁";
+      else tierIcon.innerText = isPro ? "👑" : "⚡";
+    }
+
+    if (tierName) {
+      if (isExpired) {
+        tierName.innerText = "Trial Expired";
+      } else if (isTrial) {
+        tierName.innerText = `Free Trial (${trialDaysLeft}d left)`;
+      } else {
+        tierName.innerText = plan.badge || (isPro ? "Sarthi Pro" : "Vyapar Plan");
+      }
+    }
+
+    if (upgradeLink) {
+      if (isExpired) {
+        upgradeLink.innerText = "Reactivate";
+        upgradeLink.className = "text-[11px] font-black text-rose-600 hover:text-rose-800 underline";
+      } else if (isTrial) {
+        upgradeLink.innerText = "Upgrade";
+        upgradeLink.className = "text-[11px] font-black text-amber-600 hover:text-amber-800";
+      } else {
+        upgradeLink.innerText = isPro ? "Manage" : "Upgrade";
+        upgradeLink.className = isPro ? "text-[11px] font-bold text-slate-600 hover:text-slate-900" : "text-[11px] font-black text-indigo-600 hover:text-indigo-800";
+      }
+    }
+
+    if (quotaMini) {
+      quotaMini.innerText = `${plan.maxUsers || 1} ${plan.maxUsers === 1 ? 'Seat' : 'Seats'} • Upto ${plan.maxCustomers || 100} Debtors`;
     }
   },
 
