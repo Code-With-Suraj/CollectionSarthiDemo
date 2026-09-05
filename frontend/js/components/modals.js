@@ -113,7 +113,7 @@ const Modals = {
     try {
       const res = await Api.call("recordPayment", data);
       Toast.success(res.message || "Payment recorded successfully!");
-      Store.invalidate("dashboard", "customers", "invoices", "payments");
+      Store.invalidate("dashboard", "customers", "invoices", "payments", "actions");
       Modals.close();
       App.router(); // Refresh current active view
     } catch (err) {
@@ -235,7 +235,7 @@ const Modals = {
     try {
       await Api.call("createFollowUp", data);
       Toast.success("Follow-up logged successfully");
-      Store.invalidate("dashboard", "customers", "followups");
+      Store.invalidate("dashboard", "customers", "followups", "actions");
       Modals.close();
       App.router();
     } catch (err) {

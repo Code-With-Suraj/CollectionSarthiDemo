@@ -449,12 +449,47 @@ const Api = {
     };
 
     const actions = {
-      dueToday: [{ customer: customers[0], reason: "Invoice INV-2026-101 Due", amount: 85000 }],
-      overdue: [{ customer: customers[0], reason: "Overdue by 43 days", amount: 482000 }],
-      promiseDueToday: [{ customer: customers[0], reason: "Promised ₹1,00,000 today", amount: 100000 }],
-      brokenPromises: [{ customer: customers[1], reason: "Promise broken from 25 Aug", amount: 50000 }],
-      noContactWeek: [{ customer: customers[4], reason: "No contact in 15 days", amount: 310000 }],
-      highRisk: [{ customer: customers[0], reason: "Critical Risk: 85/100", amount: 482000 }]
+      dueToday: [
+        { customer: customers[0], reason: "Invoice INV-2026-101 due today", amount: 85000 },
+        { customer: customers[1], reason: "Invoice INV-2026-103 due today", amount: 65000 },
+        { customer: customers[2], reason: "Invoice INV-2026-104 due today", amount: 70000 },
+        { customer: customers[3], reason: "Invoice INV-2026-105 due today", amount: 45000 },
+        { customer: customers[4], reason: "Invoice INV-2026-108 due today", amount: 120000 },
+        { customer: customers[0], reason: "Invoice INV-2026-109 due today", amount: 42000 }
+      ],
+      overdue: [
+        { customer: customers[0], reason: "Overdue by 43 days (INV-2026-090)", amount: 250000 },
+        { customer: customers[1], reason: "Overdue by 28 days (INV-2026-095)", amount: 165000 },
+        { customer: customers[4], reason: "Overdue by 35 days (INV-2026-088)", amount: 190000 },
+        { customer: customers[2], reason: "Overdue by 14 days (INV-2026-099)", amount: 70000 },
+        { customer: customers[0], reason: "Overdue by 26 days (INV-2026-102)", amount: 232000 },
+        { customer: customers[1], reason: "Overdue by 18 days (INV-2026-106)", amount: 55000 },
+        { customer: customers[4], reason: "Overdue by 22 days (INV-2026-107)", amount: 120000 }
+      ],
+      promiseDueToday: [
+        { customer: customers[0], reason: "Promised ₹1,00,000 payment today", amount: 100000 },
+        { customer: customers[1], reason: "Promised ₹50,000 payment today", amount: 50000 },
+        { customer: customers[2], reason: "Promised full clearing of ₹1,40,000 today", amount: 140000 },
+        { customer: customers[4], reason: "Promised RTGS ₹80,000 today afternoon", amount: 80000 },
+        { customer: customers[3], reason: "Promised ₹25,000 cheque today", amount: 25000 }
+      ],
+      brokenPromises: [
+        { customer: customers[0], reason: "Promise broken from 25 Aug (₹1,50,000)", amount: 150000 },
+        { customer: customers[1], reason: "Promise broken from 28 Aug (₹50,000)", amount: 50000 },
+        { customer: customers[4], reason: "Promise broken from 01 Sep (₹75,000)", amount: 75000 },
+        { customer: customers[0], reason: "Promise broken from 03 Sep (₹80,000)", amount: 80000 }
+      ],
+      noContactWeek: [
+        { customer: customers[4], reason: "No follow-up logged in 15 days", amount: 310000 },
+        { customer: customers[0], reason: "No follow-up logged in 12 days", amount: 482000 },
+        { customer: customers[1], reason: "No follow-up logged in 8 days", amount: 230000 },
+        { customer: customers[2], reason: "Last contact 10 days ago (Unanswered)", amount: 140000 }
+      ],
+      highRisk: [
+        { customer: customers[0], reason: "Critical Risk: 85/100 (Immediate recovery needed)", amount: 482000 },
+        { customer: customers[4], reason: "High Risk: 72/100 (Exceeded credit limit)", amount: 310000 },
+        { customer: customers[1], reason: "High Risk: 65/100 (Frequent delays)", amount: 230000 }
+      ]
     };
 
     return {

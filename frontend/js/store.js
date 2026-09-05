@@ -7,6 +7,7 @@ const Store = {
     user: null,
     token: null,
     dashboard: null,
+    actions: null,
     customers: [],
     invoices: [],
     payments: [],
@@ -81,6 +82,7 @@ const Store = {
 
   clearCache: function() {
     this.state.dashboard = null;
+    this.state.actions = null;
     this.state.customers = [];
     this.state.invoices = [];
     this.state.payments = [];
