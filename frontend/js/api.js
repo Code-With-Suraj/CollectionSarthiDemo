@@ -50,6 +50,18 @@ const Api = {
           Toast.error("Your session has expired. Please sign in again.");
           throw new Error("Session expired");
         }
+        if (json.error && json.error.code === "SUBSCRIPTION_EXPIRED") {
+          if (Store.state.subscription) {
+            Store.state.subscription.status = "EXPIRED";
+            Store.state.subscription.isExpired = true;
+            Store.setSubscription(Store.state.subscription);
+          }
+          if (typeof App !== "undefined" && App.lockExpiredSubscription) {
+            App.lockExpiredSubscription();
+          }
+          Toast.error(json.error.message || "Subscription expired. App access is paused until renewed.");
+          throw new Error(json.error.message || "SUBSCRIPTION_EXPIRED");
+        }
         throw new Error(json.error ? json.error.message : "API request failed");
       }
 
@@ -64,7 +76,7 @@ const Api = {
   },
 
   /**
-   * High-fidelity in-browser simulation when BASE_URL is not set yet
+   * In-Memory Simulation Engine (Used when no Google Apps Script URL provided)
    */
   simulateApi: async function(action, data) {
     // Artificial small delay for realistic UX feeling
@@ -75,6 +87,15 @@ const Api = {
       window.__CS_DEMO_DB = this.initDemoDb();
     }
     const db = window.__CS_DEMO_DB;
+
+    // Guard simulated protected routes if subscription is expired
+    const exemptActions = ["login", "registerUser", "logout", "getCurrentUser", "getSubscription", "syncSubscription", "activateSubscription", "getPlans"];
+    if (exemptActions.indexOf(action) === -1 && db.subscription && (db.subscription.status === "EXPIRED" || db.subscription.isExpired)) {
+      if (typeof App !== "undefined" && App.lockExpiredSubscription) {
+        App.lockExpiredSubscription();
+      }
+      throw new Error("SUBSCRIPTION_EXPIRED: Your subscription has expired. Please renew your plan to continue using CollectionSarthi.");
+    }
 
     switch (action) {
       case "login":
@@ -193,6 +214,40 @@ const Api = {
 
       case "getUsers":
         return { users: db.users };
+
+      case "registerUser":
+      case "setupInitialUser":
+        const regEmail = String(data.email || data.Email || "").trim().toLowerCase();
+        const regName = String(data.name || data.Name || "").trim();
+        const regRole = data.role || data.Role || "OWNER";
+        const purgeDemo = data.purgeDemoUsers === true || data.purgeDemoUsers === "true";
+        if (purgeDemo) {
+          db.users = db.users.filter(u => u.Email !== "admin@collectionsarthi.com" && u.Email !== "rahul@collectionsarthi.com");
+        }
+        const newUserObj = {
+          UserID: "USR-" + Date.now(),
+          Name: regName,
+          Email: regEmail,
+          Phone: data.phone || data.Phone || "",
+          Role: regRole,
+          Status: "ACTIVE"
+        };
+        db.users.push(newUserObj);
+        return {
+          success: true,
+          token: "sim-token-" + Date.now(),
+          user: { userId: newUserObj.UserID, name: newUserObj.Name, email: newUserObj.Email, role: newUserObj.Role },
+          subscription: db.subscription || { planId: "GROWTH", status: "TRIAL", isTrial: true, trialDaysLeft: 7 }
+        };
+
+      case "deleteUser":
+        db.users = db.users.filter(u => u.UserID !== data.userId);
+        return { deleted: true, userId: data.userId };
+
+      case "purgeDemoUsers":
+        const beforeCount = db.users.length;
+        db.users = db.users.filter(u => u.Email !== "admin@collectionsarthi.com" && u.Email !== "rahul@collectionsarthi.com");
+        return { purgedCount: beforeCount - db.users.length };
 
       case "getPlans":
         return {

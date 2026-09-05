@@ -177,8 +177,36 @@
     </div>
 
     <!-- Main Dynamic View Container -->
-    <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full overflow-x-hidden">
-      <div id="main-content"></div>
+    <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full overflow-x-hidden flex flex-col justify-between">
+      <div>
+        <!-- Global Subscription Expiration Alert Banner (Appears 7 days before expiry) -->
+        <div id="subscription-warning-banner" class="mb-6 hidden"></div>
+        <div id="main-content"></div>
+      </div>
+
+      <!-- Professional Software Build Footer -->
+      <footer class="mt-12 pt-6 pb-2 border-t border-slate-200 text-xs text-slate-500 flex flex-col md:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-1.5 flex-wrap justify-center md:justify-start text-center md:text-left">
+          <span class="font-bold text-slate-800">CollectionSarthi</span>
+          <span class="text-slate-400">—</span>
+          <span>This software build by</span>
+          <a href="https://websarthi.surajdx.com" target="_blank" class="font-bold text-indigo-600 hover:text-indigo-800 hover:underline">WebSarthi</a>
+          <span class="text-slate-400">•</span>
+          <span>Powered by</span>
+          <a href="http://surajdx.com" target="_blank" class="font-bold text-indigo-600 hover:text-indigo-800 hover:underline">Suraj Automation</a>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-600">
+          <a href="tel:+919355337839" class="hover:text-indigo-600 transition-colors flex items-center gap-1 font-medium">
+            <span>📞 9355337839</span>
+          </a>
+          <span class="text-slate-300">•</span>
+          <a href="mailto:suraj.gasdeveloper@gmail.com" class="hover:text-indigo-600 transition-colors flex items-center gap-1 font-medium">
+            <span>✉️ suraj.gasdeveloper@gmail.com</span>
+          </a>
+          <span class="text-slate-300">•</span>
+          <a href="https://websarthi.surajdx.com" target="_blank" class="text-slate-400 hover:text-slate-700 transition-colors">websarthi.surajdx.com</a>
+        </div>
+      </footer>
     </main>
 
   </div>

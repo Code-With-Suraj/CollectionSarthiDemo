@@ -36,6 +36,15 @@ const Store = {
       }
       if (savedSub) {
         this.state.subscription = JSON.parse(savedSub);
+        // Self-heal: If remaining days are >= 0 (e.g. Sat Sep 12), immediately clear any false EXPIRED state
+        if (this.state.subscription) {
+          const days = this.getDaysLeft();
+          if (days >= 0 && (this.state.subscription.status === "EXPIRED" || this.state.subscription.isExpired)) {
+            this.state.subscription.status = this.state.subscription.isTrial ? "TRIAL" : "ACTIVE";
+            this.state.subscription.isExpired = false;
+            try { sessionStorage.setItem("cs_sub", JSON.stringify(this.state.subscription)); } catch (err) {}
+          }
+        }
       }
     } catch (e) {
       console.warn("Could not restore session: " + e.message);
@@ -53,9 +62,19 @@ const Store = {
   },
 
   setSubscription: function(sub) {
-    this.state.subscription = sub;
+    if (sub) {
+      this.state.subscription = sub;
+      // Auto-validate status against real days left
+      const days = this.getDaysLeft();
+      if (days >= 0 && (this.state.subscription.status === "EXPIRED" || this.state.subscription.isExpired)) {
+        this.state.subscription.status = this.state.subscription.isTrial ? "TRIAL" : "ACTIVE";
+        this.state.subscription.isExpired = false;
+      }
+    } else {
+      this.state.subscription = null;
+    }
     try {
-      sessionStorage.setItem("cs_sub", JSON.stringify(sub));
+      sessionStorage.setItem("cs_sub", JSON.stringify(this.state.subscription));
     } catch (e) {}
     // Trigger plan badge update if DOM ready
     if (typeof App !== "undefined" && App.updateSubscriptionBadges) {
@@ -114,15 +133,81 @@ const Store = {
     );
   },
 
+  getDaysLeft: function() {
+    if (!this.state.subscription) return 999;
+    const sub = this.state.subscription;
+
+    // 1. Direct date calculation from expiryDate
+    let expDate = null;
+    if (sub.expiryDate) {
+      try {
+        const str = String(sub.expiryDate).trim();
+        if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+          const parts = str.substring(0, 10).split("-");
+          expDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        } else {
+          // If string like "Sat Sep 12" lacks a 4-digit year, append current year (e.g. 2026)
+          const currentYear = new Date().getFullYear();
+          const withYear = str.includes(String(currentYear)) ? str : (str + " " + currentYear);
+          const parsed = new Date(withYear);
+          if (!isNaN(parsed.getTime())) {
+            expDate = parsed;
+          }
+        }
+      } catch (e) {
+        console.warn("Date parse error for expiryDate:", e);
+      }
+    }
+
+    if (expDate && !isNaN(expDate.getTime())) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      expDate.setHours(0, 0, 0, 0);
+      const diffMs = expDate.getTime() - today.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+      // Self-heal: If diffDays >= 0, status CANNOT be EXPIRED
+      if (diffDays >= 0 && (sub.status === "EXPIRED" || sub.isExpired)) {
+        sub.status = sub.isTrial ? "TRIAL" : "ACTIVE";
+        sub.isExpired = false;
+        try { sessionStorage.setItem("cs_sub", JSON.stringify(sub)); } catch (err) {}
+      }
+      return diffDays;
+    }
+
+    if (sub.status === "EXPIRED" || sub.isExpired) {
+      return -1;
+    }
+
+    if (typeof sub.daysLeft === "number") {
+      return sub.daysLeft;
+    }
+    if (sub.isTrial && typeof sub.trialDaysLeft === "number") {
+      return sub.trialDaysLeft;
+    }
+
+    return 999;
+  },
+
   getTrialDaysLeft: function() {
     if (this.state.subscription && typeof this.state.subscription.trialDaysLeft === "number") {
       return this.state.subscription.trialDaysLeft;
     }
-    return 0;
+    const days = this.getDaysLeft();
+    return days >= 0 ? days : 0;
   },
 
   isExpired: function() {
-    return Boolean(this.state.subscription && this.state.subscription.status === "EXPIRED");
+    if (!this.state.subscription) return false;
+    const days = this.getDaysLeft();
+    return days < 0;
+  },
+
+  isExpiringSoon: function() {
+    if (!this.state.subscription) return false;
+    if (this.isExpired()) return false;
+    const days = this.getDaysLeft();
+    return days >= 0 && days <= 7;
   },
 
   hasFeature: function(featureKey) {

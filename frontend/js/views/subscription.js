@@ -417,6 +417,52 @@ const SubscriptionView = {
           <span>Auto GST-compliant digital tax invoice</span>
         </div>
       </div>
+
+      <!-- Direct Assistance & Developer Contact Details -->
+      <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-7 text-white border border-indigo-500/30 shadow-xl space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div class="space-y-1.5">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 shadow-sm">
+              ⚡ Direct Billing & Custom Integration Support
+            </div>
+            <h3 class="text-lg sm:text-xl font-black text-white tracking-tight">Need Custom Plans, Bank NEFT or Technical Help?</h3>
+            <p class="text-xs text-indigo-200 max-w-xl">
+              Aap direct phone call, WhatsApp ya email ke madhyam se developer team se connect ho sakte hain:
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <a href="tel:+919355337839" class="px-4 py-2.5 rounded-xl bg-white text-slate-950 hover:bg-slate-100 active:scale-95 text-xs font-black shadow-md flex items-center gap-2 transition-all">
+              <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+              <span>+91 9355337839</span>
+            </a>
+            <a href="mailto:suraj.gasdeveloper@gmail.com" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black shadow-md flex items-center gap-2 transition-all">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+              <span>suraj.gasdeveloper@gmail.com</span>
+            </a>
+            <a href="https://wa.me/919355337839?text=Hi%2C%20I%20want%20to%20discuss%20CollectionSarthi%20subscription%20and%20support." target="_blank" class="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black shadow-md flex items-center gap-1.5 transition-all">
+              💬 WhatsApp
+            </a>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-xs text-indigo-300 gap-3">
+          <div>
+            Build by <a href="https://websarthi.surajdx.com" target="_blank" class="font-extrabold text-white hover:text-amber-300 underline decoration-indigo-400 underline-offset-2">WebSarthi</a> • Powered by <a href="http://surajdx.com" target="_blank" class="font-extrabold text-white hover:text-amber-300 underline decoration-indigo-400 underline-offset-2">Suraj Automation</a>
+          </div>
+          <div class="flex items-center gap-4 text-xs font-semibold">
+            <a href="https://websarthi.surajdx.com" target="_blank" class="text-indigo-200 hover:text-white transition-colors flex items-center gap-1">
+              <span>websarthi.surajdx.com</span>
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+            <span class="text-indigo-500">•</span>
+            <a href="http://surajdx.com" target="_blank" class="text-indigo-200 hover:text-white transition-colors flex items-center gap-1">
+              <span>surajdx.com</span>
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
     `;
   },
 

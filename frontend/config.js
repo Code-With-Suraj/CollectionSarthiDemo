@@ -5,7 +5,7 @@
 const API_CONFIG = {
   // Replace with your Google Apps Script Web App deployment URL:
   // e.g., "https://script.google.com/macros/s/AKfycbx.../exec"
-  BASE_URL: "https://script.google.com/macros/s/AKfycbypmZfTEn_mkCLbKR9bM7hkK1n2Fe4aEApzKV86IC3KWc8O6wSrsELJPaw6nBs72HYX/exec",
+  BASE_URL: "https://script.google.com/macros/s/AKfycby_Y6zYEDfmu5ZIes1Ea8lD_m6QfDLlKAQHWP9OnZTNa5_PtFKbQ-M2IdRGtaXmPCWp/exec",
 
   // Demo Mode: Disabled to enforce 100% Live Google Sheet data
   DEMO_MODE_IF_EMPTY: false,
@@ -19,7 +19,12 @@ const BRAND_CONFIG = {
   shortName: "CollectionSarthi",
   currency: "INR",
   currencySymbol: "₹",
-  supportPhone: "+91 98765 43210",
+  supportPhone: "+91 9355337839",
+  supportEmail: "suraj.gasdeveloper@gmail.com",
+  developerName: "WebSarthi",
+  developerUrl: "https://websarthi.surajdx.com",
+  poweredByName: "Suraj Automation",
+  poweredByUrl: "http://surajdx.com",
   primaryColor: "#4f46e5"
 };
 

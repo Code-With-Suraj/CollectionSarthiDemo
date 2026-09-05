@@ -63,7 +63,16 @@ const DashboardView = {
     const aging = data.aging || {};
     const priority = data.priorityCustomers || [];
     const pipeline = data.pipeline || {};
-    const alerts = data.alerts || [];
+    const alerts = (data.alerts || []).slice();
+
+    // Include 7-day subscription expiration warning in dashboard alerts
+    if (Store.isExpiringSoon()) {
+      const daysLeft = Store.getDaysLeft();
+      const dayStr = daysLeft === 0 ? "today (aaj)" : daysLeft === 1 ? "tomorrow (kal)" : `in ${daysLeft} days`;
+      alerts.unshift({
+        message: `⚠️ Subscription Alert: Aapka plan ${dayStr} expire ho raha hai. Renew karne ke liye Plan & Billing par jayein.`
+      });
+    }
 
     // Alerts Bar
     let alertsHtml = "";
