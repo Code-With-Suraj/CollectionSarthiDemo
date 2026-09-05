@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CollectionSarthi - Recovery Command Center</title>
+  <meta name="description" content="Accounts Receivable, Collection Workflow & Recovery Intelligence for Indian SMBs">
+
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <!-- Chart.js CDN for Financial Aging Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen">
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-auto"></div>
+
+  <!-- Dynamic Modal / Drawer Container -->
+  <div id="modal-container"></div>
+
+  <!-- Login Overlay (Shown when unauthenticated) -->
+  <div id="login-overlay"></div>
+
+  <!-- Main App Shell (Hidden when unauthenticated) -->
+  <div id="app-layout" class="hidden min-h-screen flex flex-col md:flex-row">
+    
+    <!-- Desktop Sidebar -->
+    <aside class="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 min-h-screen flex-shrink-0">
+      <!-- Brand Header -->
+      <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/20 font-bold text-lg">
+          CS
+        </div>
+        <div>
+          <h1 class="font-bold text-slate-900 leading-tight">CollectionSarthi</h1>
+          <p class="text-[11px] font-medium text-slate-400">Recovery Command</p>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+        <a href="#/dashboard" data-route="#/dashboard" class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold bg-indigo-50 text-indigo-700">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          Dashboard
+        </a>
+
+        <a href="#/actions" data-route="#/actions" class="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+          <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            Today's Actions
+          </div>
+          <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+        </a>
+
+        <a href="#/customers" data-route="#/customers" class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          Customers / Debtors
+        </a>
+
+        <a href="#/outstanding" data-route="#/outstanding" class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
+          Aging Analysis
+        </a>
+
+        <a href="#/invoices" data-route="#/invoices" class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Invoices
+        </a>
+
+        <a href="#/payments" data-route="#/payments" class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Payments Realized
+        </a>
+
+        <a href="#/followups" data-route="#/followups" class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          Follow-Up Log
+        </a>
+
+        <a href="#/reports" data-route="#/reports" class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Reports & Audit
+        </a>
+
+        <div class="pt-4 border-t border-slate-100 space-y-1">
+          <a href="#/users" data-route="#/users" class="admin-only flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            Team & Users
+          </a>
+
+          <a href="#/settings" data-route="#/settings" class="admin-only flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            Settings & Import
+          </a>
+        </div>
+      </nav>
+
+      <!-- User Profile Card in Sidebar Footer -->
+      <div class="p-4 border-t border-slate-100 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
+            U
+          </div>
+          <div class="overflow-hidden">
+            <div id="header-user-name" class="text-xs font-bold text-slate-900 truncate">User</div>
+            <div id="header-user-role" class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">OWNER</div>
+          </div>
+        </div>
+        <button onclick="Auth.logout()" class="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-slate-50 transition-colors" title="Sign Out">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Top Navigation Header -->
+    <div class="md:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+      <div class="flex items-center gap-2">
+        <button onclick="App.toggleMobileMenu()" class="p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <span class="font-bold text-slate-900">CollectionSarthi</span>
+      </div>
+      <button onclick="Modals.openRecordPayment()" class="px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg">
+        Record Pay
+      </button>
+    </div>
+
+    <!-- Mobile Slide-out Menu -->
+    <div id="mobile-sidebar" class="hidden md:hidden fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm">
+      <div class="bg-white w-64 h-full p-6 space-y-4">
+        <div class="flex justify-between items-center pb-4 border-b border-slate-100">
+          <span class="font-bold text-slate-900">Menu</span>
+          <button onclick="App.toggleMobileMenu()" class="text-slate-400">&times;</button>
+        </div>
+        <nav class="space-y-2 text-sm font-semibold text-slate-600">
+          <a href="#/dashboard" class="block py-2">Dashboard</a>
+          <a href="#/actions" class="block py-2 text-indigo-600 font-bold">Today's Actions</a>
+          <a href="#/customers" class="block py-2">Customers</a>
+          <a href="#/outstanding" class="block py-2">Aging Analysis</a>
+          <a href="#/invoices" class="block py-2">Invoices</a>
+          <a href="#/payments" class="block py-2">Payments</a>
+          <a href="#/followups" class="block py-2">Follow-ups</a>
+          <a href="#/reports" class="block py-2">Reports</a>
+          <a href="#/settings" class="block py-2">Settings</a>
+          <button onclick="Auth.logout()" class="block py-2 text-red-600 text-left w-full">Sign Out</button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Main Dynamic View Container -->
+    <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full overflow-x-hidden">
+      <div id="main-content"></div>
+    </main>
+
+  </div>
+
+  <!-- Application Script Loading Pipeline -->
+  <script src="config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/components/toast.js"></script>
+  <script src="js/components/modals.js"></script>
+  <script src="js/views/dashboard.js"></script>
+  <script src="js/views/actions.js"></script>
+  <script src="js/views/customers.js"></script>
+  <script src="js/views/invoices.js"></script>
+  <script src="js/views/payments.js"></script>
+  <script src="js/views/followups.js"></script>
+  <script src="js/views/outstanding.js"></script>
+  <script src="js/views/reports.js"></script>
+  <script src="js/views/users.js"></script>
+  <script src="js/views/settings.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

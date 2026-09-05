@@ -1,0 +1,16 @@
+# Ignore Google Apps Script backend and documentation folders
+/backend/
+/docs/
+
+# Environment, secrets & local configs
+.env
+.env*.local
+*.log
+
+# Vercel deployment cache
+.vercel
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
