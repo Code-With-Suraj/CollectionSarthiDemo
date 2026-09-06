@@ -604,8 +604,8 @@ const Api = {
     ];
 
     const followups = [
-      { FollowUpID: "FUP-301", CustomerID: "CUS-101", FollowUpDate: "2026-09-01", FollowUpType: "CALL", Outcome: "PROMISED", PromiseDate: "2026-09-05", PromiseAmount: 100000, Remarks: "Promised 1 Lakh by Friday" },
-      { FollowUpID: "FUP-302", CustomerID: "CUS-102", FollowUpDate: "2026-08-28", FollowUpType: "WHATSAPP", Outcome: "REQUESTED_TIME", Remarks: "Asked for 1 week time" }
+      { FollowUpID: "FUP-301", CustomerID: "CUS-101", CustomerName: "Sharma Traders", FollowUpDate: "2026-09-01", FollowUpType: "CALL", Outcome: "PROMISED", PromiseDate: "2026-09-05", PromiseAmount: 100000, Remarks: "Promised 1 Lakh by Friday", CreatedBy: "Business Owner" },
+      { FollowUpID: "FUP-302", CustomerID: "CUS-102", CustomerName: "Gupta Hardware & Sanitary", FollowUpDate: "2026-08-28", FollowUpType: "WHATSAPP", Outcome: "REQUESTED_TIME", Remarks: "Asked for 1 week time", CreatedBy: "Rahul Sharma (Collector)" }
     ];
 
     const dashboard = {

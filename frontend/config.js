@@ -22,7 +22,7 @@ const APP_CONFIG = {
 const API_CONFIG = {
   // Replace with your Google Apps Script Web App deployment URL:
   // e.g., "https://script.google.com/macros/s/AKfycbx.../exec"
-  BASE_URL: "https://script.google.com/macros/s/AKfycbxhxNyBDBlRDA-D2Y4KQvzihYZ12H2AWFbX2XhliNm9Odp_g8jXvLsZSDeR-gvDQ4o5/exec",
+  BASE_URL: "https://script.google.com/macros/s/AKfycbxMgmG3yQAeavykdr8MdR4pWPvprAbKtU3nkrfLyeU8Qg9FJIJmiNQLN6B0VLGcyXDT/exec",
 
   // Demo Mode: Disabled to enforce 100% Live Google Sheet data
   DEMO_MODE_IF_EMPTY: false,
