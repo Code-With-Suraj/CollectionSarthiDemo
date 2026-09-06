@@ -7,6 +7,9 @@ const FollowUpsView = {
   searchTerm: "",
   outcomeFilter: "ALL",
   channelFilter: "ALL",
+  currentPage: 1,
+  pageSize: 10,
+  filteredCount: 0,
   followups: [],
   customerMap: new Map(),
 
@@ -14,6 +17,7 @@ const FollowUpsView = {
     this.searchTerm = "";
     this.outcomeFilter = "ALL";
     this.channelFilter = "ALL";
+    this.currentPage = 1;
 
     const isPro = Store.isPro();
 
@@ -140,16 +144,19 @@ const FollowUpsView = {
 
   handleSearch: function(val) {
     this.searchTerm = (val || "").toLowerCase().trim();
+    this.currentPage = 1;
     this.renderTable();
   },
 
   handleOutcomeFilter: function(val) {
     this.outcomeFilter = val;
+    this.currentPage = 1;
     this.renderTable();
   },
 
   handleChannelFilter: function(val) {
     this.channelFilter = val;
+    this.currentPage = 1;
     this.renderTable();
   },
 
@@ -279,6 +286,7 @@ const FollowUpsView = {
     });
 
     if (filtered.length === 0) {
+      this.filteredCount = 0;
       container.innerHTML = `
         <div class="p-12 text-center text-slate-500 text-sm">
           No follow-ups found matching your search or filter criteria.
@@ -286,6 +294,17 @@ const FollowUpsView = {
       `;
       return;
     }
+
+    // Pagination calculations
+    const totalItems = filtered.length;
+    this.filteredCount = totalItems;
+    const totalPages = Math.ceil(totalItems / this.pageSize) || 1;
+    if (this.currentPage > totalPages) this.currentPage = totalPages;
+    if (this.currentPage < 1) this.currentPage = 1;
+
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = Math.min(startIndex + this.pageSize, totalItems);
+    const paginated = filtered.slice(startIndex, endIndex);
 
     container.innerHTML = `
       <div class="overflow-x-auto">
@@ -303,7 +322,7 @@ const FollowUpsView = {
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
-            ${filtered.map(f => {
+            ${paginated.map(f => {
               const custInfo = this.getCustomerInfo(f.CustomerID, f.CustomerName);
               const cleanPhone = custInfo.phone ? String(custInfo.phone).replace(/\D/g, "").slice(-10) : "";
               const hasPromise = Boolean(f.PromiseDate);
@@ -386,11 +405,115 @@ const FollowUpsView = {
           </tbody>
         </table>
       </div>
-      <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex justify-between items-center">
-        <span>Showing <b>${filtered.length}</b> of <b>${this.followups.length}</b> follow-up record(s)</span>
-        <span class="text-slate-400">PTP = Promise to Pay</span>
+      <div class="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+        <!-- Count and Page Size Selector -->
+        <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+          <div>
+            Showing <span class="font-bold text-slate-900">${startIndex + 1}</span> to <span class="font-bold text-slate-900">${endIndex}</span> of <span class="font-bold text-slate-900">${totalItems}</span> follow-up(s)
+            ${this.followups.length !== totalItems ? `<span class="text-slate-400 ml-1">(filtered from ${this.followups.length})</span>` : ""}
+          </div>
+          <div class="flex items-center gap-1.5 border-l border-slate-200 pl-3">
+            <span class="text-slate-500">Per page:</span>
+            <select onchange="FollowUpsView.handlePageSizeChange(this.value)" class="text-xs font-semibold border border-slate-200 rounded px-1.5 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+              <option value="10" ${this.pageSize === 10 ? 'selected' : ''}>10</option>
+              <option value="25" ${this.pageSize === 25 ? 'selected' : ''}>25</option>
+              <option value="50" ${this.pageSize === 50 ? 'selected' : ''}>50</option>
+              <option value="100" ${this.pageSize === 100 ? 'selected' : ''}>100</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Pagination Navigation Buttons -->
+        <div class="flex items-center gap-1.5 flex-wrap justify-center">
+          <!-- Previous Button -->
+          <button
+            onclick="FollowUpsView.goToPage(${this.currentPage - 1})"
+            ${this.currentPage === 1 ? 'disabled' : ''}
+            class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-all ${
+              this.currentPage === 1
+                ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-200 text-slate-400'
+                : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm active:scale-95'
+            }"
+            title="Previous Page"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            <span>Prev</span>
+          </button>
+
+          <!-- Numbered Page Buttons -->
+          ${this.renderPaginationButtons(this.currentPage, totalPages)}
+
+          <!-- Next Button -->
+          <button
+            onclick="FollowUpsView.goToPage(${this.currentPage + 1})"
+            ${this.currentPage === totalPages ? 'disabled' : ''}
+            class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-all ${
+              this.currentPage === totalPages
+                ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-200 text-slate-400'
+                : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm active:scale-95'
+            }"
+            title="Next Page"
+          >
+            <span>Next</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
       </div>
     `;
+  },
+
+  renderPaginationButtons: function(currentPage, totalPages) {
+    if (totalPages <= 1) return "";
+
+    let pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 4) {
+        pages = [1, 2, 3, 4, 5, "...", totalPages];
+      } else if (currentPage >= totalPages - 3) {
+        pages = [1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+      } else {
+        pages = [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
+      }
+    }
+
+    return pages.map(p => {
+      if (p === "...") {
+        return `<span class="px-2 py-1 text-slate-400 text-xs select-none">...</span>`;
+      }
+      const isActive = p === currentPage;
+      return `
+        <button
+          onclick="FollowUpsView.goToPage(${p})"
+          class="min-w-[30px] h-7 px-2 rounded-lg text-xs font-semibold transition-all ${
+            isActive
+              ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-600'
+              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-sm'
+          }"
+        >
+          ${p}
+        </button>
+      `;
+    }).join("");
+  },
+
+  goToPage: function(page) {
+    const totalPages = Math.ceil((this.filteredCount || this.followups.length) / this.pageSize) || 1;
+    if (page < 1 || page > totalPages || page === this.currentPage) return;
+    this.currentPage = page;
+    this.renderTable();
+
+    const container = document.getElementById("followups-table-container");
+    if (container) {
+      container.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  },
+
+  handlePageSizeChange: function(size) {
+    this.pageSize = parseInt(size, 10) || 10;
+    this.currentPage = 1;
+    this.renderTable();
   },
 
   /**
