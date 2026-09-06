@@ -57,8 +57,10 @@ const FollowUpsView = {
               <option value="ALL">All Outcomes</option>
               <option value="PROMISED">Payment Promised (PTP)</option>
               <option value="REQUESTED_TIME">Requested Time / Extension</option>
+              <option value="PARTIAL_PAYMENT">Partial Paid</option>
               <option value="DISPUTED">Disputed Invoice</option>
               <option value="NO_RESPONSE">No Response / Unreachable</option>
+              <option value="REFUSED">Refused Payment</option>
               <option value="ESCALATED">Escalated</option>
             </select>
 
@@ -92,6 +94,7 @@ const FollowUpsView = {
       if (cached.data && cached.data.length > 0) {
         this.followups = cached.data;
         this.renderTable();
+        this.populateCustomOutcomesInFilter();
 
         // Background revalidation
         if (cached.isStale) {
@@ -100,6 +103,7 @@ const FollowUpsView = {
               Store.setCached("followups", res.followups);
               this.followups = res.followups;
               this.renderTable();
+              this.populateCustomOutcomesInFilter();
             }
           }).catch(e => console.warn("Background revalidation failed for followups:", e));
         }
@@ -109,6 +113,7 @@ const FollowUpsView = {
         Store.setCached("followups", followups);
         this.followups = followups;
         this.renderTable();
+        this.populateCustomOutcomesInFilter();
       }
 
       // If customer cache was empty, load customers in background to enrich any missing names
@@ -140,6 +145,30 @@ const FollowUpsView = {
         this.customerMap.set(c.CustomerID, c);
       }
     }
+    this.populateCustomOutcomesInFilter();
+  },
+
+  populateCustomOutcomesInFilter: function() {
+    const filterEl = document.getElementById("fup-outcome-filter");
+    if (!filterEl || !this.followups) return;
+
+    const standardValues = new Set([
+      "ALL", "PROMISED", "REQUESTED_TIME", "PARTIAL_PAYMENT",
+      "DISPUTED", "DISPUTE", "NO_RESPONSE", "REFUSED", "ESCALATED"
+    ]);
+
+    const existingValues = new Set(Array.from(filterEl.options).map(o => o.value.toUpperCase()));
+
+    this.followups.forEach(f => {
+      const o = String(f.Outcome || "").trim();
+      if (o && !standardValues.has(o.toUpperCase()) && !existingValues.has(o.toUpperCase())) {
+        const opt = document.createElement("option");
+        opt.value = o.toUpperCase();
+        opt.textContent = o.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+        filterEl.appendChild(opt);
+        existingValues.add(o.toUpperCase());
+      }
+    });
   },
 
   handleSearch: function(val) {
@@ -226,7 +255,20 @@ const FollowUpsView = {
         Escalated
       </span>`;
     }
-    return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">${Utils.escapeHtml(outcome || '-')}</span>`;
+    if (o === "PARTIAL_PAYMENT") {
+      return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Partial Paid
+      </span>`;
+    }
+    if (o === "REFUSED") {
+      return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        Refused
+      </span>`;
+    }
+    const formatted = String(outcome || '-').replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+    return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">${Utils.escapeHtml(formatted)}</span>`;
   },
 
   renderTable: function() {

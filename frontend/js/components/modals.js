@@ -179,6 +179,8 @@ const Modals = {
       this._selectedFollowUpCustomer = null;
     }
 
+    const customOutcomes = this.getCustomOutcomes();
+
     this.container.innerHTML = `
       <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
@@ -222,15 +224,36 @@ const Modals = {
                 </select>
               </div>
               <div>
-                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Outcome <span class="text-red-500">*</span></label>
-                <select name="Outcome" id="fup-outcome-select" required onchange="Modals.togglePromiseFields(this.value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium text-slate-700">
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-semibold uppercase text-slate-500">Outcome <span class="text-red-500">*</span></label>
+                  <button type="button" onclick="Modals.promptCustomOutcome()" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-0.5" title="Add a new custom outcome">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    <span>+ Custom</span>
+                  </button>
+                </div>
+                <select name="Outcome" id="fup-outcome-select" required onchange="Modals.handleOutcomeChange(this.value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium text-slate-700">
                   <option value="PROMISED" selected>Payment Promised</option>
                   <option value="REQUESTED_TIME">Requested Extension</option>
                   <option value="PARTIAL_PAYMENT">Partial Paid</option>
                   <option value="DISPUTE">Invoice Dispute</option>
                   <option value="NO_RESPONSE">No Response / Switch Off</option>
                   <option value="REFUSED">Refused Payment</option>
+                  ${customOutcomes.length > 0 ? `
+                    <optgroup label="Custom Outcomes" id="fup-custom-outcomes-group">
+                      ${customOutcomes.map(co => `<option value="${co.value}">${Utils.escapeHtml(co.label)}</option>`).join("")}
+                    </optgroup>
+                  ` : `<optgroup label="Custom Outcomes" id="fup-custom-outcomes-group" class="hidden"></optgroup>`}
+                  <option value="__NEW_CUSTOM__">➕ Add Custom Outcome...</option>
                 </select>
+
+                <!-- Sleek Collapsible Micro-Input (Zero bulk when hidden) -->
+                <div id="fup-custom-outcome-wrap" class="hidden mt-1.5 p-2 bg-indigo-50/70 border border-indigo-200 rounded-lg">
+                  <div class="flex items-center gap-1.5">
+                    <input type="text" id="fup-custom-outcome-input" placeholder="e.g. Cheque Collected, Call Back at 4 PM" class="flex-1 min-w-0 border border-slate-300 rounded px-2.5 py-1 text-xs bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500" onkeydown="if(event.key==='Enter'){event.preventDefault();Modals.saveCustomOutcome();}">
+                    <button type="button" onclick="Modals.saveCustomOutcome()" class="px-2.5 py-1 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow-sm whitespace-nowrap active:scale-95 transition-all">Save</button>
+                    <button type="button" onclick="Modals.cancelCustomOutcome()" class="px-1.5 py-1 text-xs text-slate-400 hover:text-slate-600 font-bold" title="Cancel">&times;</button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -396,6 +419,8 @@ const Modals = {
     const fields = document.getElementById("promise-fields");
     const dateInput = document.getElementById("promise-date-input");
     const amtInput = document.getElementById("promise-amount-input");
+    if (!fields || !dateInput || !amtInput) return;
+
     if (outcome === "PROMISED") {
       fields.style.display = "block";
       dateInput.required = true;
@@ -405,6 +430,124 @@ const Modals = {
       dateInput.required = false;
       amtInput.required = false;
     }
+  },
+
+  getCustomOutcomes: function() {
+    let list = [];
+    try {
+      const stored = localStorage.getItem("cs_custom_outcomes");
+      if (stored) list = JSON.parse(stored);
+    } catch (e) {}
+
+    const cachedFups = (Store.getWithStale && Store.getWithStale("followups").data) || Store.state.followups || [];
+    const standardKeys = new Set(["PROMISED", "REQUESTED_TIME", "PARTIAL_PAYMENT", "DISPUTE", "DISPUTED", "NO_RESPONSE", "REFUSED", "ESCALATED"]);
+
+    if (Array.isArray(cachedFups)) {
+      cachedFups.forEach(f => {
+        const o = String(f.Outcome || "").trim();
+        if (o && !standardKeys.has(o.toUpperCase())) {
+          if (!list.some(item => item.value.toUpperCase() === o.toUpperCase())) {
+            list.push({
+              value: o.toUpperCase().replace(/\s+/g, "_"),
+              label: o.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())
+            });
+          }
+        }
+      });
+    }
+    return list;
+  },
+
+  saveCustomOutcomeToStorage: function(outcomeText) {
+    if (!outcomeText || !outcomeText.trim()) return null;
+    const cleanText = outcomeText.trim();
+    const key = cleanText.toUpperCase().replace(/\s+/g, "_");
+    const label = cleanText.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+
+    let list = [];
+    try {
+      const stored = localStorage.getItem("cs_custom_outcomes");
+      if (stored) list = JSON.parse(stored);
+    } catch (e) {}
+
+    if (!list.some(item => item.value === key)) {
+      list.push({ value: key, label: label });
+      try {
+        localStorage.setItem("cs_custom_outcomes", JSON.stringify(list));
+      } catch (e) {}
+    }
+    return { value: key, label: label };
+  },
+
+  promptCustomOutcome: function() {
+    const wrap = document.getElementById("fup-custom-outcome-wrap");
+    const input = document.getElementById("fup-custom-outcome-input");
+    if (wrap) {
+      wrap.classList.remove("hidden");
+      if (input) {
+        input.value = "";
+        input.focus();
+      }
+    }
+  },
+
+  handleOutcomeChange: function(val) {
+    if (val === "__NEW_CUSTOM__") {
+      this.promptCustomOutcome();
+      this.togglePromiseFields("__NEW_CUSTOM__");
+    } else {
+      const wrap = document.getElementById("fup-custom-outcome-wrap");
+      if (wrap) wrap.classList.add("hidden");
+      this.togglePromiseFields(val);
+    }
+  },
+
+  cancelCustomOutcome: function() {
+    const wrap = document.getElementById("fup-custom-outcome-wrap");
+    const select = document.getElementById("fup-outcome-select");
+    if (wrap) wrap.classList.add("hidden");
+    if (select && select.value === "__NEW_CUSTOM__") {
+      select.value = "PROMISED";
+      this.togglePromiseFields("PROMISED");
+    }
+  },
+
+  saveCustomOutcome: function() {
+    const input = document.getElementById("fup-custom-outcome-input");
+    const val = input ? input.value.trim() : "";
+    if (!val) {
+      Toast.error("Please enter an outcome name");
+      if (input) input.focus();
+      return;
+    }
+
+    const saved = this.saveCustomOutcomeToStorage(val);
+    if (!saved) return;
+
+    const select = document.getElementById("fup-outcome-select");
+    let group = document.getElementById("fup-custom-outcomes-group");
+    if (select) {
+      let existingOpt = Array.from(select.options).find(o => o.value.toUpperCase() === saved.value.toUpperCase());
+      if (!existingOpt) {
+        const newOpt = document.createElement("option");
+        newOpt.value = saved.value;
+        newOpt.textContent = saved.label;
+        if (group) {
+          group.classList.remove("hidden");
+          group.appendChild(newOpt);
+        } else {
+          select.insertBefore(newOpt, select.querySelector('option[value="__NEW_CUSTOM__"]'));
+        }
+        existingOpt = newOpt;
+      }
+      select.value = existingOpt.value;
+      this.togglePromiseFields(existingOpt.value);
+    }
+
+    const wrap = document.getElementById("fup-custom-outcome-wrap");
+    if (wrap) wrap.classList.add("hidden");
+
+    Toast.success(`Outcome "${saved.label}" added`);
   },
 
   submitFollowUp: async function(e) {
@@ -418,6 +561,25 @@ const Modals = {
       const searchInput = document.getElementById("fup-customer-search");
       if (searchInput) searchInput.focus();
       return;
+    }
+
+    // Handle custom outcome if __NEW_CUSTOM__ is selected
+    if (data.Outcome === "__NEW_CUSTOM__") {
+      const customInput = document.getElementById("fup-custom-outcome-input");
+      const customVal = customInput ? customInput.value.trim() : "";
+      if (!customVal) {
+        Toast.error("Please enter a custom outcome name");
+        if (customInput) customInput.focus();
+        return;
+      }
+      const saved = this.saveCustomOutcomeToStorage(customVal);
+      data.Outcome = saved.value;
+    }
+
+    // If outcome is not a payment promise, clean promise date and amount
+    if (data.Outcome !== "PROMISED") {
+      delete data.PromiseDate;
+      delete data.PromiseAmount;
     }
 
     btn.disabled = true;
