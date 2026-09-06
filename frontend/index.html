@@ -90,139 +90,148 @@
   <!-- Main App Shell (Hidden when unauthenticated) -->
   <div id="app-layout" class="hidden min-h-screen flex flex-col md:flex-row">
 
-    <!-- Desktop Sidebar -->
-    <aside class="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 min-h-screen flex-shrink-0">
+    <!-- Desktop Sidebar (Collapsible) -->
+    <aside id="desktop-sidebar" class="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 min-h-screen flex-shrink-0 transition-all duration-300 ease-in-out relative">
       <!-- Brand Header -->
-      <div class="p-5 border-b border-slate-100 flex items-center gap-3">
-        <img src="assets/brand/logo-mark.svg" alt="CollectionSarthi Emblem"
-          class="w-10 h-10 rounded-xl cs-brand-glow cs-logo-emblem flex-shrink-0" />
-        <div class="overflow-hidden">
-          <div class="flex items-center gap-0.5">
-            <span class="font-extrabold text-slate-900 text-base leading-tight tracking-tight">Collection<span
-                class="text-indigo-600">Sarthi</span></span>
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mb-0.5"></span>
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between gap-2 overflow-hidden">
+        <div class="flex items-center gap-3 overflow-hidden brand-header-content">
+          <img src="assets/brand/logo-mark.svg" alt="CollectionSarthi Emblem"
+            class="w-10 h-10 rounded-xl cs-brand-glow cs-logo-emblem flex-shrink-0" />
+          <div class="overflow-hidden sidebar-text">
+            <div class="flex items-center gap-0.5">
+              <span class="font-extrabold text-slate-900 text-base leading-tight tracking-tight">Collection<span
+                  class="text-indigo-600">Sarthi</span></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mb-0.5"></span>
+            </div>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recovery Command</p>
           </div>
-          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recovery Command</p>
         </div>
+        <button id="sidebar-collapse-btn" onclick="App.toggleSidebar()"
+          class="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 active:scale-95 transition-all flex-shrink-0 cursor-pointer"
+          title="Collapse sidebar (Ctrl+B)">
+          <svg id="sidebar-collapse-icon" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+          </svg>
+        </button>
       </div>
 
       <!-- Navigation Links -->
-      <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-        <a href="#/dashboard" data-route="#/dashboard"
-          class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold bg-indigo-50 text-indigo-700">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <nav class="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+        <a href="#/dashboard" data-route="#/dashboard" title="Dashboard"
+          class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold bg-indigo-50 text-indigo-700 transition-colors">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
           </svg>
-          Dashboard
+          <span class="sidebar-text truncate">Dashboard</span>
         </a>
 
-        <a href="#/actions" data-route="#/actions"
-          class="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-          <div class="flex items-center gap-3">
-            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="#/actions" data-route="#/actions" title="Today's Actions"
+          class="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors relative">
+          <div class="flex items-center gap-3 overflow-hidden">
+            <svg class="w-5 h-5 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
             </svg>
-            Today's Actions
+            <span class="sidebar-text truncate">Today's Actions</span>
           </div>
-          <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+          <span class="w-2 h-2 rounded-full bg-rose-500 flex-shrink-0 sidebar-dot-badge"></span>
         </a>
 
-        <a href="#/customers" data-route="#/customers"
-          class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="#/customers" data-route="#/customers" title="Customers / Debtors"
+          class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
-          Customers / Debtors
+          <span class="sidebar-text truncate">Customers / Debtors</span>
         </a>
 
-        <a href="#/outstanding" data-route="#/outstanding"
-          class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="#/outstanding" data-route="#/outstanding" title="Aging Analysis"
+          class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
           </svg>
-          Aging Analysis
+          <span class="sidebar-text truncate">Aging Analysis</span>
         </a>
 
-        <a href="#/invoices" data-route="#/invoices"
-          class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="#/invoices" data-route="#/invoices" title="Invoices"
+          class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          Invoices
+          <span class="sidebar-text truncate">Invoices</span>
         </a>
 
-        <a href="#/payments" data-route="#/payments"
-          class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="#/payments" data-route="#/payments" title="Payments Realized"
+          class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Payments Realized
+          <span class="sidebar-text truncate">Payments Realized</span>
         </a>
 
-        <a href="#/followups" data-route="#/followups"
-          class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="#/followups" data-route="#/followups" title="Follow-Up Log"
+          class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
-          Follow-Up Log
+          <span class="sidebar-text truncate">Follow-Up Log</span>
         </a>
 
-        <a href="#/reports" data-route="#/reports"
-          class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="#/reports" data-route="#/reports" title="Reports & Audit"
+          class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          Reports & Audit
+          <span class="sidebar-text truncate">Reports & Audit</span>
         </a>
 
-        <div class="pt-4 border-t border-slate-100 space-y-1">
-          <a href="#/subscription" data-route="#/subscription"
+        <div class="pt-3 border-t border-slate-100 space-y-1">
+          <a href="#/subscription" data-route="#/subscription" title="Plan & Billing"
             class="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
-            <div class="flex items-center gap-3">
-              <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center gap-3 overflow-hidden">
+              <svg class="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>Plan & Billing</span>
+              <span class="sidebar-text truncate">Plan & Billing</span>
             </div>
             <span id="sidebar-plan-pill"
-              class="px-2 py-0.5 text-[10px] font-black rounded-md bg-indigo-50 text-indigo-700">STARTER</span>
+              class="sidebar-text px-2 py-0.5 text-[10px] font-black rounded-md bg-indigo-50 text-indigo-700 flex-shrink-0">STARTER</span>
           </a>
 
-          <a href="#/users" data-route="#/users"
-            class="admin-only flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <a href="#/users" data-route="#/users" title="Team & Users"
+            class="admin-only flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
-            Team & Users
+            <span class="sidebar-text truncate">Team & Users</span>
           </a>
 
-          <a href="#/settings" data-route="#/settings"
-            class="admin-only flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <a href="#/settings" data-route="#/settings" title="Settings & Import"
+            class="admin-only flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            Settings & Import
+            <span class="sidebar-text truncate">Settings & Import</span>
           </a>
         </div>
       </nav>
 
-      <!-- Plan Tier Mini Widget in Sidebar Footer -->
-      <div class="px-4 py-3 mx-3 mb-2 rounded-xl bg-slate-50 border border-slate-200/80">
+      <!-- Plan Tier Widget (Full Mode) -->
+      <div id="sidebar-plan-widget" class="sidebar-full-widget px-4 py-3 mx-3 mb-2 rounded-xl bg-slate-50 border border-slate-200/80">
         <div class="flex items-center justify-between mb-1">
           <div class="flex items-center gap-1.5">
             <span id="sidebar-tier-icon">⚡</span>
@@ -234,20 +243,24 @@
         <div id="sidebar-quota-mini" class="text-[10px] text-slate-500 font-medium">1 Seat • Upto 100 Debtors</div>
       </div>
 
+      <!-- Plan Tier Widget (Collapsed Mini Mode) -->
+      <div id="sidebar-plan-mini" class="sidebar-mini-widget hidden justify-center mx-auto mb-2 p-2 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-colors" onclick="window.location.hash='#/subscription'" title="Plan & Billing">
+        <span id="sidebar-tier-icon-mini" class="text-sm">⚡</span>
+      </div>
+
       <!-- User Profile Card in Sidebar Footer -->
-      <div class="p-4 border-t border-slate-100 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
+      <div class="p-3 border-t border-slate-100 flex items-center justify-between sidebar-user-card">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <div class="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-xs">
             U
           </div>
-          <div class="overflow-hidden">
+          <div class="overflow-hidden sidebar-text">
             <div id="header-user-name" class="text-xs font-bold text-slate-900 truncate">User</div>
-            <div id="header-user-role" class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">OWNER
-            </div>
+            <div id="header-user-role" class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">OWNER</div>
           </div>
         </div>
         <button onclick="Auth.logout()"
-          class="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-slate-50 transition-colors"
+          class="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-slate-50 transition-colors flex-shrink-0"
           title="Sign Out">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

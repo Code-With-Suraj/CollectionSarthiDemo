@@ -7,6 +7,7 @@ const App = {
     Store.init();
     Toast.init();
     Modals.init();
+    this.initSidebar();
 
     // Check if user is logged in
     if (!Store.state.token || !Store.state.user) {
@@ -467,6 +468,9 @@ const App = {
       if (isExpired) tierIcon.innerText = "⚠️";
       else if (isTrial) tierIcon.innerText = "🎁";
       else tierIcon.innerText = isPro ? "👑" : "⚡";
+
+      const tierIconMini = document.getElementById("sidebar-tier-icon-mini");
+      if (tierIconMini) tierIconMini.innerText = tierIcon.innerText;
     }
 
     if (tierName) {
@@ -500,6 +504,44 @@ const App = {
   toggleMobileMenu: function() {
     const menu = document.getElementById("mobile-sidebar");
     if (menu) menu.classList.toggle("hidden");
+  },
+
+  initSidebar: function() {
+    try {
+      const isCollapsed = localStorage.getItem("cs_sidebar_collapsed") === "true";
+      const sidebar = document.getElementById("desktop-sidebar");
+      if (sidebar && isCollapsed) {
+        sidebar.classList.add("sidebar-collapsed");
+        const btn = document.getElementById("sidebar-collapse-btn");
+        if (btn) btn.title = "Expand sidebar (Ctrl+B)";
+      }
+    } catch (e) {}
+
+    // Global keyboard shortcut: Ctrl+B or Cmd+B to toggle sidebar
+    window.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "b" || e.key === "B")) {
+        const target = e.target;
+        if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+          return;
+        }
+        e.preventDefault();
+        this.toggleSidebar();
+      }
+    });
+  },
+
+  toggleSidebar: function() {
+    const sidebar = document.getElementById("desktop-sidebar");
+    if (!sidebar) return;
+    const isCollapsed = sidebar.classList.toggle("sidebar-collapsed");
+    try {
+      localStorage.setItem("cs_sidebar_collapsed", String(isCollapsed));
+    } catch (e) {}
+
+    const btn = document.getElementById("sidebar-collapse-btn");
+    if (btn) {
+      btn.title = isCollapsed ? "Expand sidebar (Ctrl+B)" : "Collapse sidebar (Ctrl+B)";
+    }
   }
 };
 
