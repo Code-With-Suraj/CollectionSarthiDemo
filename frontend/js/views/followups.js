@@ -15,6 +15,8 @@ const FollowUpsView = {
     this.outcomeFilter = "ALL";
     this.channelFilter = "ALL";
 
+    const isPro = Store.isPro();
+
     container.innerHTML = `
       <div class="space-y-6">
         <!-- Header -->
@@ -23,10 +25,19 @@ const FollowUpsView = {
             <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Follow-Up History & Notes</h1>
             <p class="text-sm text-slate-500">Every phone call, WhatsApp reminder, visit, outcome, and payment promise</p>
           </div>
-          <button onclick="Modals.openFollowUp()" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm flex items-center gap-1.5 self-start sm:self-auto active:scale-95 transition-all">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Log Follow-Up
-          </button>
+          <div class="flex items-center gap-2 self-start sm:self-auto">
+            <button onclick="Modals.openWhatsAppTemplatesLibrary()" class="px-3.5 py-2 text-sm font-semibold rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 shadow-sm flex items-center gap-2 active:scale-95 transition-all" title="WhatsApp Follow-Up & Legal Templates Library">
+              <span>💬</span>
+              <span>WhatsApp Templates</span>
+              <span class="text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded ${isPro ? 'bg-indigo-600 text-white' : 'bg-amber-100 text-amber-800 border border-amber-300'}">
+                ${isPro ? '👑 13 PRO' : 'STARTER'}
+              </span>
+            </button>
+            <button onclick="Modals.openFollowUp()" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm flex items-center gap-1.5 active:scale-95 transition-all">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Log Follow-Up
+            </button>
+          </div>
         </div>
 
         <!-- Filter & Search Bar -->
@@ -359,9 +370,10 @@ const FollowUpsView = {
                   <td class="px-5 py-3.5 text-right whitespace-nowrap align-top">
                     <div class="flex items-center justify-end gap-1.5">
                       ${cleanPhone ? `
-                        <a href="https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Namaste ${custInfo.name}, regards from CollectionSarthi. Regarding our discussion on payment follow-up...`)}" target="_blank" class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors" title="Send WhatsApp">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                        </a>
+                        <button onclick="FollowUpsView.triggerWhatsAppFollowUp('${f.CustomerID}', '${f.FollowUpID || ''}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 transition-colors flex items-center gap-1.5 text-xs font-semibold" title="Send WhatsApp Recovery Template according to plan">
+                          <span>💬</span>
+                          <span class="hidden sm:inline">WhatsApp</span>
+                        </button>
                       ` : ""}
                       <button onclick="Modals.openFollowUp('${f.CustomerID}', '${Utils.escapeHtml(custInfo.name).replace(/'/g, "\\'")}')" class="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors" title="Log New Follow-up for this Debtor">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -379,5 +391,41 @@ const FollowUpsView = {
         <span class="text-slate-400">PTP = Promise to Pay</span>
       </div>
     `;
+  },
+
+  /**
+   * Intelligently select and open WhatsApp sender with appropriate plan template
+   * based on debtor status and specific follow-up outcome
+   */
+  triggerWhatsAppFollowUp: function(customerId, followUpId) {
+    const fup = (this.followups || []).find(f => String(f.FollowUpID || "") === String(followUpId)) || {};
+    const custInfo = this.getCustomerInfo(customerId, fup.CustomerName);
+
+    // Determine amount to use: promise amount if specified, else outstanding from customer profile
+    let amount = Number(fup.PromiseAmount || 0);
+    const cachedCust = this.customerMap.get(customerId);
+    if (!amount && cachedCust && Number(cachedCust.TotalOutstanding || 0) > 0) {
+      amount = Number(cachedCust.TotalOutstanding);
+    }
+
+    // Smart template mapping based on outcome & promise status
+    let templateKey = "gentle";
+    const outcome = String(fup.Outcome || "").toUpperCase();
+    const todayStr = new Date().toISOString().split("T")[0];
+    const isOverduePromise = fup.PromiseDate && fup.PromiseDate < todayStr;
+
+    if (outcome === "PROMISED") {
+      templateKey = isOverduePromise ? "dispatch_hold" : "ptp_commitment";
+    } else if (outcome === "REQUESTED_TIME") {
+      templateKey = "installment_offer";
+    } else if (outcome === "DISPUTED") {
+      templateKey = "reconcile";
+    } else if (outcome === "NO_RESPONSE") {
+      templateKey = "director_appeal";
+    } else if (outcome === "ESCALATED") {
+      templateKey = "pre_legal";
+    }
+
+    Modals.openWhatsAppSender(custInfo.phone, custInfo.name, amount, customerId, templateKey);
   }
 };
