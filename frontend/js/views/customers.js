@@ -74,18 +74,34 @@ const CustomersView = {
 
   loadCustomers: async function() {
     try {
-      let customers = Store.getCached("customers");
-      if (!customers || customers.length === 0) {
+      const cached = Store.getWithStale("customers");
+      if (cached.data && cached.data.length > 0) {
+        this.allCustomers = cached.data;
+        this.renderTable();
+
+        if (cached.isStale) {
+          Api.call("getCustomers").then(res => {
+            if (res && res.customers) {
+              Store.setCached("customers", res.customers);
+              this.allCustomers = res.customers;
+              this.renderTable();
+            }
+          }).catch(e => console.warn("Background revalidation failed for customers:", e));
+        }
+      } else {
         const res = await Api.call("getCustomers");
-        customers = res.customers || [];
+        const customers = res.customers || [];
         Store.setCached("customers", customers);
+        this.allCustomers = customers;
+        this.renderTable();
       }
-      this.allCustomers = customers;
-      this.renderTable();
     } catch (err) {
-      document.getElementById("customers-table-container").innerHTML = `
-        <div class="p-6 text-sm text-red-600">Failed to load customers: ${err.message}</div>
-      `;
+      const el = document.getElementById("customers-table-container");
+      if (el) {
+        el.innerHTML = `
+          <div class="p-6 text-sm text-red-600">Failed to load customers: ${err.message}</div>
+        `;
+      }
     }
   },
 

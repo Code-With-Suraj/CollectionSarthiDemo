@@ -17,8 +17,16 @@ const Store = {
     lastFetched: {}
   },
 
-  // Cache validity duration in ms (2 minutes for client store)
+  // Cache validity duration in ms (default fallback)
   CACHE_TTL_MS: 120000,
+
+  getTTL: function(key) {
+    const upper = String(key).toUpperCase();
+    if (typeof APP_CONFIG !== "undefined" && APP_CONFIG.CACHE_TTL_MS && APP_CONFIG.CACHE_TTL_MS[upper]) {
+      return APP_CONFIG.CACHE_TTL_MS[upper];
+    }
+    return this.CACHE_TTL_MS;
+  },
 
   init: function() {
     try {
@@ -45,6 +53,20 @@ const Store = {
             try { sessionStorage.setItem("cs_sub", JSON.stringify(this.state.subscription)); } catch (err) {}
           }
         }
+      }
+
+      // Warm-start restore for instant UI rendering
+      const cacheKeys = ["dashboard", "actions", "customers", "invoices", "payments", "followups", "settings"];
+      for (let i = 0; i < cacheKeys.length; i++) {
+        const k = cacheKeys[i];
+        try {
+          const raw = sessionStorage.getItem("cs_cache_" + k);
+          const time = sessionStorage.getItem("cs_cache_ts_" + k);
+          if (raw) {
+            this.state[k] = JSON.parse(raw);
+            if (time) this.state.lastFetched[k] = Number(time);
+          }
+        } catch (e) {}
       }
     } catch (e) {
       console.warn("Could not restore session: " + e.message);
@@ -211,11 +233,39 @@ const Store = {
   },
 
   hasFeature: function(featureKey) {
-    // Pro features enabled during trial
-    if (this.isTrial() && (featureKey === "ptpTracker" || featureKey === "riskScoring" || featureKey === "actionCenterPrioritySort")) {
+    // Pro features enabled during active trial
+    if (this.isTrial() && !this.isExpired()) {
       return true;
     }
     const plan = this.getPlan();
+    if (!plan) return false;
+
+    // 1. Direct boolean flag (e.g. ptpTracker, riskScoring, actionCenterPrioritySort, dataImport)
+    if (typeof plan[featureKey] === "boolean") {
+      return plan[featureKey];
+    }
+
+    // 2. String enum flags
+    if (featureKey === "fullAging" || featureKey === "agingAnalysisFull") {
+      return plan.agingAnalysis === "FULL";
+    }
+    if (featureKey === "customWhatsAppTemplates" || featureKey === "whatsAppTemplates") {
+      return plan.whatsApp === "CUSTOM_TEMPLATES";
+    }
+
+    // 3. Dynamic search in sheet featuresList
+    if (Array.isArray(plan.featuresList)) {
+      const match = plan.featuresList.find(function(f) {
+        if (!f) return false;
+        if (typeof f === "string") return f.toLowerCase().includes(featureKey.toLowerCase());
+        if (f.id === featureKey || f.key === featureKey) return true;
+        return (f.label || "").toLowerCase().includes(featureKey.toLowerCase());
+      });
+      if (match) {
+        return typeof match === "object" ? match.enabled !== false : true;
+      }
+    }
+
     return Boolean(plan[featureKey]);
   },
 
@@ -248,12 +298,17 @@ const Store = {
   isCacheValid: function(key) {
     const timestamp = this.state.lastFetched[key];
     if (!timestamp) return false;
-    return (Date.now() - timestamp) < this.CACHE_TTL_MS;
+    return (Date.now() - timestamp) < this.getTTL(key);
   },
 
   setCached: function(key, data) {
     this.state[key] = data;
-    this.state.lastFetched[key] = Date.now();
+    const now = Date.now();
+    this.state.lastFetched[key] = now;
+    try {
+      sessionStorage.setItem("cs_cache_" + key, JSON.stringify(data));
+      sessionStorage.setItem("cs_cache_ts_" + key, String(now));
+    } catch (e) {}
   },
 
   getCached: function(key) {
@@ -263,19 +318,40 @@ const Store = {
     return null;
   },
 
+  getWithStale: function(key) {
+    const data = this.state[key];
+    const hasData = Array.isArray(data) ? data.length > 0 : Boolean(data);
+    const valid = this.isCacheValid(key);
+    return {
+      data: hasData ? data : null,
+      isStale: !valid
+    };
+  },
+
   invalidate: function(...keys) {
     keys.forEach(k => {
       delete this.state.lastFetched[k];
+      try {
+        sessionStorage.removeItem("cs_cache_ts_" + k);
+      } catch (e) {}
     });
   },
 
   clearCache: function() {
+    const keys = ["dashboard", "actions", "customers", "invoices", "payments", "followups", "settings"];
+    keys.forEach(k => {
+      try {
+        sessionStorage.removeItem("cs_cache_" + k);
+        sessionStorage.removeItem("cs_cache_ts_" + k);
+      } catch (e) {}
+    });
     this.state.dashboard = null;
     this.state.actions = null;
     this.state.customers = [];
     this.state.invoices = [];
     this.state.payments = [];
     this.state.followups = [];
+    this.state.settings = {};
     this.state.lastFetched = {};
   }
 };

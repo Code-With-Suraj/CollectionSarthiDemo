@@ -19,14 +19,16 @@ const ActionsView = {
     this.sortBy = "default";
 
     // Fast cache check: if data is already cached, render immediately (0ms delay!)
-    const cached = Store.getCached("actions");
-    if (cached) {
-      this.data = cached;
+    const cached = Store.getWithStale("actions");
+    if (cached.data) {
+      this.data = cached.data;
       this.renderShell(container);
       this.renderTabContent();
       this.updateBadges();
-      // Silently re-verify in the background
-      this.loadData(true);
+      // If stale, silently re-verify in the background
+      if (cached.isStale) {
+        this.loadData(true);
+      }
     } else {
       this.renderShell(container, true);
       await this.loadData(false);

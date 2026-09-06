@@ -4,10 +4,12 @@
  */
 
 const Api = {
+  _pendingRequests: new Map(),
+
   /**
-   * Execute API Action
+   * Execute API Action with in-flight deduplication and auto-retry
    */
-  call: async function(action, data = {}) {
+  call: async function(action, data = {}, retryCount = 0) {
     const url = API_CONFIG.BASE_URL ? API_CONFIG.BASE_URL.trim() : "";
 
     // If no backend URL configured and demo mode allowed, run in-memory simulator
@@ -19,60 +21,101 @@ const Api = {
       throw new Error("Backend URL not configured. Please enter your Google Apps Script Web App URL in config.js");
     }
 
-    const payload = {
-      action: action,
-      token: Store.state.token || "",
-      data: data
-    };
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.REQUEST_TIMEOUT_MS);
-
-    try {
-      // Google Apps Script Web App accepts POST with redirect follow
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8" // GAS handles text/plain without CORS preflight issues
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      const json = await response.json();
-
-      if (!json.success) {
-        if (json.error && json.error.code === "UNAUTHORIZED") {
-          Store.clearSession();
-          window.location.hash = "#/login";
-          Toast.error("Your session has expired. Please sign in again.");
-          throw new Error("Session expired");
+    // In-flight request deduplication for idempotent read actions
+    const isReadAction = action.startsWith("get") || action === "ping";
+    let dedupeKey = null;
+    if (isReadAction) {
+      try {
+        dedupeKey = action + ":" + JSON.stringify(data);
+        if (this._pendingRequests.has(dedupeKey)) {
+          return await this._pendingRequests.get(dedupeKey);
         }
-        if (json.error && json.error.code === "SUBSCRIPTION_EXPIRED") {
-          if (Store.state.subscription) {
-            Store.state.subscription.status = "EXPIRED";
-            Store.state.subscription.isExpired = true;
-            Store.setSubscription(Store.state.subscription);
-          }
-          if (typeof App !== "undefined" && App.lockExpiredSubscription) {
-            App.lockExpiredSubscription();
-          }
-          Toast.error(json.error.message || "Subscription expired. App access is paused until renewed.");
-          throw new Error(json.error.message || "SUBSCRIPTION_EXPIRED");
-        }
-        throw new Error(json.error ? json.error.message : "API request failed");
-      }
-
-      return json.data;
-    } catch (err) {
-      clearTimeout(timeoutId);
-      if (err.name === "AbortError") {
-        throw new Error("Request timed out. Please check your internet connection.");
-      }
-      throw err;
+      } catch (e) {}
     }
+
+    const execPromise = (async () => {
+      const payload = {
+        action: action,
+        token: Store.state.token || "",
+        data: data
+      };
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.REQUEST_TIMEOUT_MS || 20000);
+      const startTime = performance.now();
+
+      try {
+        // Google Apps Script Web App accepts POST with redirect follow
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8" // GAS handles text/plain without CORS preflight issues
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        const json = await response.json();
+        const roundtripMs = Math.round(performance.now() - startTime);
+
+        // Performance Telemetry Logging
+        if (json._meta && json._meta.executionMs) {
+          console.debug(`[API ${action}] Server: ${json._meta.executionMs}ms | Roundtrip: ${roundtripMs}ms`);
+        }
+
+        if (!json.success) {
+          if (json.error && json.error.code === "UNAUTHORIZED") {
+            Store.clearSession();
+            window.location.hash = "#/login";
+            Toast.error("Your session has expired. Please sign in again.");
+            throw new Error("Session expired");
+          }
+          if (json.error && json.error.code === "SUBSCRIPTION_EXPIRED") {
+            if (Store.state.subscription) {
+              Store.state.subscription.status = "EXPIRED";
+              Store.state.subscription.isExpired = true;
+              Store.setSubscription(Store.state.subscription);
+            }
+            if (typeof App !== "undefined" && App.lockExpiredSubscription) {
+              App.lockExpiredSubscription();
+            }
+            Toast.error(json.error.message || "Subscription expired. App access is paused until renewed.");
+            throw new Error(json.error.message || "SUBSCRIPTION_EXPIRED");
+          }
+          throw new Error(json.error ? json.error.message : "API request failed");
+        }
+
+        return json.data;
+      } catch (err) {
+        clearTimeout(timeoutId);
+
+        // Auto-retry once on transient network errors for read requests
+        const maxRetries = API_CONFIG.MAX_RETRIES || 1;
+        if (isReadAction && retryCount < maxRetries && (err.name === "AbortError" || err.message.includes("Failed to fetch") || err.message.includes("NetworkError"))) {
+          const delay = (API_CONFIG.RETRY_DELAY_MS || 1200) * Math.pow(2, retryCount);
+          console.warn(`[API ${action}] Network hiccup, retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})...`);
+          await new Promise(r => setTimeout(r, delay));
+          return await Api.call(action, data, retryCount + 1);
+        }
+
+        if (err.name === "AbortError") {
+          throw new Error("Request timed out. Please check your internet connection.");
+        }
+        throw err;
+      } finally {
+        if (dedupeKey) {
+          Api._pendingRequests.delete(dedupeKey);
+        }
+      }
+    })();
+
+    if (dedupeKey) {
+      this._pendingRequests.set(dedupeKey, execPromise);
+    }
+
+    return await execPromise;
   },
 
   /**

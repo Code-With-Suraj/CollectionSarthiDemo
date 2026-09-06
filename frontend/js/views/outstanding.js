@@ -29,26 +29,48 @@ const OutstandingView = {
     `;
 
     try {
-      let data = Store.getCached("dashboard");
-      if (!data) {
-        data = await Api.call("getDashboard");
-        Store.setCached("dashboard", data);
+      const cached = Store.getWithStale("dashboard");
+      if (cached.data) {
+        this.data = cached.data;
+        const aging = this.data.aging || {};
+        if (aging.d90_plus && aging.d90_plus.amount > 0) this.selectedBucket = "d90_plus";
+        else if (aging.d61_90 && aging.d61_90.amount > 0) this.selectedBucket = "d61_90";
+        else if (aging.d31_60 && aging.d31_60.amount > 0) this.selectedBucket = "d31_60";
+        else if (aging.d1_30 && aging.d1_30.amount > 0) this.selectedBucket = "d1_30";
+        else this.selectedBucket = "all";
+
+        this.renderAgingContent();
+
+        if (cached.isStale) {
+          Api.call("getDashboard").then(fresh => {
+            if (fresh) {
+              Store.setCached("dashboard", fresh);
+              this.data = fresh;
+              this.renderAgingContent();
+            }
+          }).catch(e => console.warn("Background revalidation failed for aging dashboard:", e));
+        }
+      } else {
+        const fresh = await Api.call("getDashboard");
+        Store.setCached("dashboard", fresh);
+        this.data = fresh;
+
+        const aging = fresh.aging || {};
+        if (aging.d90_plus && aging.d90_plus.amount > 0) this.selectedBucket = "d90_plus";
+        else if (aging.d61_90 && aging.d61_90.amount > 0) this.selectedBucket = "d61_90";
+        else if (aging.d31_60 && aging.d31_60.amount > 0) this.selectedBucket = "d31_60";
+        else if (aging.d1_30 && aging.d1_30.amount > 0) this.selectedBucket = "d1_30";
+        else this.selectedBucket = "all";
+
+        this.renderAgingContent();
       }
-
-      this.data = data;
-      // Default to first non-empty overdue bucket or "all"
-      const aging = data.aging || {};
-      if (aging.d90_plus && aging.d90_plus.amount > 0) this.selectedBucket = "d90_plus";
-      else if (aging.d61_90 && aging.d61_90.amount > 0) this.selectedBucket = "d61_90";
-      else if (aging.d31_60 && aging.d31_60.amount > 0) this.selectedBucket = "d31_60";
-      else if (aging.d1_30 && aging.d1_30.amount > 0) this.selectedBucket = "d1_30";
-      else this.selectedBucket = "all";
-
-      this.renderAgingContent();
     } catch (err) {
-      document.getElementById("aging-container").innerHTML = `
-        <div class="p-6 text-sm text-red-600">Failed to load aging data: ${err.message}</div>
-      `;
+      const el = document.getElementById("aging-container");
+      if (el) {
+        el.innerHTML = `
+          <div class="p-6 text-sm text-red-600">Failed to load aging data: ${err.message}</div>
+        `;
+      }
     }
   },
 

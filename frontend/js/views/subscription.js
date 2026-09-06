@@ -28,8 +28,8 @@ const SubscriptionView = {
             <p class="text-sm text-slate-500 mt-0.5">Manage your CollectionSarthi plan, team seats, recovery quotas, and billing.</p>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick="SubscriptionView.syncMaster()" class="px-3 py-2 text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-1.5 text-xs font-semibold">
-              <svg class="w-4 h-4 text-indigo-600 animate-spin-hover" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <button id="btn-sync-master" onclick="SubscriptionView.syncMaster()" class="px-3.5 py-2 text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl shadow-xs hover:shadow transition-all flex items-center gap-1.5 text-xs font-bold">
+              <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
               <span>Sync Master Sheet</span>
             </button>
             <button onclick="SubscriptionView.refresh()" class="p-2 text-slate-500 hover:text-slate-800 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-1.5 text-xs font-medium" title="Refresh">
@@ -466,11 +466,27 @@ const SubscriptionView = {
     `;
   },
 
+  ensureRazorpayLoaded: async function() {
+    if (typeof Razorpay !== "undefined") return true;
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => reject(new Error("Failed to load Razorpay checkout SDK"));
+      document.head.appendChild(script);
+    });
+  },
+
   subscribePlan: async function(planId) {
+    return await this.startCheckout(planId);
+  },
+
+  startCheckout: async function(planId) {
     const rawPlans = (this.subData && this.subData.plans) || Store.getPlans();
     const plan = rawPlans[planId] || (typeof SUBSCRIPTION_CONFIG !== "undefined" && SUBSCRIPTION_CONFIG.PLANS && SUBSCRIPTION_CONFIG.PLANS[planId]);
     if (!plan) {
-      if (typeof Toast !== "undefined") Toast.error("Plan not found: " + planId);
+      if (typeof Toast !== "undefined") Toast.error("Invalid plan selected");
       return;
     }
 
@@ -482,8 +498,13 @@ const SubscriptionView = {
     const currentUser = Store.state.user || { name: "Business Owner", email: "admin@collectionsarthi.com", phone: "9876543210" };
 
     if (typeof Razorpay === "undefined") {
-      if (typeof Toast !== "undefined") Toast.error("Razorpay payment gateway script is still loading. Please refresh in a moment.");
-      return;
+      if (typeof Toast !== "undefined") Toast.info("Loading secure payment gateway...");
+      try {
+        await this.ensureRazorpayLoaded();
+      } catch (e) {
+        if (typeof Toast !== "undefined") Toast.error("Could not load payment gateway: " + e.message);
+        return;
+      }
     }
 
     // Pre-create Razorpay Order with payment_capture: 1 for guaranteed automatic capture
@@ -508,7 +529,7 @@ const SubscriptionView = {
       currency: "INR",
       name: (typeof BRAND_CONFIG !== "undefined" && BRAND_CONFIG.name) || "CollectionSarthi",
       description: `${plan.name} (${cycle === "YEARLY" ? "Annual" : "Monthly"} Subscription)`,
-      image: "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4b0.png",
+      image: (typeof BRAND_CONFIG !== "undefined" && BRAND_CONFIG.logoUrl) || "assets/brand/logo-mark.svg",
       ...(createdOrderId ? { order_id: createdOrderId } : {}),
       handler: async function(response) {
         if (typeof Toast !== "undefined") Toast.info("Payment confirmed! Capturing & activating subscription...");
@@ -553,5 +574,52 @@ const SubscriptionView = {
       console.error("Razorpay initiation failed", e);
       if (typeof Toast !== "undefined") Toast.error("Could not open Razorpay checkout: " + e.message);
     }
+  },
+
+  syncMaster: async function() {
+    const syncBtn = document.getElementById("btn-sync-master");
+    if (syncBtn) {
+      syncBtn.disabled = true;
+      syncBtn.innerHTML = `
+        <svg class="w-4 h-4 animate-spin text-indigo-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <span>Syncing Sheet...</span>
+      `;
+    }
+
+    try {
+      if (typeof Toast !== "undefined") Toast.info("Connecting to Google Sheets 'Plans' tab...");
+      const plansRes = await Api.call("getPlans", { forceRefresh: true });
+      if (plansRes && plansRes.plans) {
+        if (!this.subData) this.subData = {};
+        this.subData.plans = plansRes.plans;
+        if (Store.state.subscription) {
+          Store.state.subscription.plans = plansRes.plans;
+        }
+      }
+
+      const subRes = await Api.call("getSubscription", { forceRefresh: true });
+      if (subRes) {
+        this.subData = subRes;
+        Store.setSubscription(subRes);
+      }
+
+      this.renderContent();
+      if (typeof Toast !== "undefined") Toast.success("⚡ Plans & features successfully synced live from Google Sheet!");
+    } catch (err) {
+      console.error("Master sheet sync error", err);
+      if (typeof Toast !== "undefined") Toast.error("Sync failed: " + err.message);
+    } finally {
+      if (syncBtn) {
+        syncBtn.disabled = false;
+        syncBtn.innerHTML = `
+          <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span>Sync Master Sheet</span>
+        `;
+      }
+    }
+  },
+
+  refresh: async function() {
+    await this.syncMaster();
   }
 };

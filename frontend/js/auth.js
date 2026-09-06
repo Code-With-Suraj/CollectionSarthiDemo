@@ -36,11 +36,14 @@ const Auth = {
           
           <!-- Brand Header -->
           <div class="text-center">
-            <div class="inline-flex items-center justify-center w-13 h-13 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 mb-3">
-              <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div class="inline-flex items-center justify-center mb-3">
+              <img src="assets/brand/logo-mark.svg" alt="${BRAND_CONFIG.name}" class="w-14 h-14 rounded-2xl cs-brand-glow cs-logo-emblem" />
             </div>
-            <h2 class="text-2xl font-black text-slate-900 tracking-tight">${BRAND_CONFIG.name}</h2>
-            <p class="text-xs text-slate-500 mt-0.5">${BRAND_CONFIG.tagline}</p>
+            <h2 class="text-2xl font-black text-slate-900 tracking-tight flex items-center justify-center gap-0.5">
+              <span>Collection<span class="text-indigo-600">Sarthi</span></span>
+              <span class="w-2 h-2 rounded-full bg-emerald-500 mb-0.5 ml-0.5"></span>
+            </h2>
+            <p class="text-xs font-semibold text-slate-500 mt-1">${BRAND_CONFIG.tagline}</p>
           </div>
 
           <!-- Professional Segmented Navigation Tabs -->

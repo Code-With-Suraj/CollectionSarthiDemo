@@ -4,6 +4,21 @@
 
 :root {
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* CollectionSarthi Official Brand Color Tokens */
+  --cs-primary: #4f46e5;
+  --cs-primary-hover: #4338ca;
+  --cs-primary-dark: #3730a3;
+  --cs-primary-light: #eef2ff;
+  --cs-recovery-green: #10b981;
+  --cs-recovery-green-dark: #059669;
+  --cs-sarthi-amber: #f59e0b;
+  --cs-danger-red: #ef4444;
+  --cs-slate-900: #0f172a;
+  --cs-slate-800: #1e293b;
+  --cs-slate-600: #475569;
+  --cs-slate-100: #f1f5f9;
+  --cs-border: #e2e8f0;
 }
 
 body {
@@ -12,6 +27,20 @@ body {
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Brand Utilities */
+.cs-brand-glow {
+  box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.22);
+}
+.cs-logo-emblem {
+  display: inline-block;
+  vertical-align: middle;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cs-logo-emblem:hover {
+  transform: scale(1.03);
+}
+
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {

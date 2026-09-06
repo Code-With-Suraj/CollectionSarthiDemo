@@ -2,15 +2,34 @@
  * CollectionSarthi - Client Configuration
  * To connect to your deployment, update BASE_URL with your Apps Script Web App URL.
  */
+const APP_CONFIG = {
+  NAME: "CollectionSarthi",
+  VERSION: "1.1.0",
+  BUILD_DATE: "2026-09-06",
+  ENABLE_SWR: true,
+  CACHE_TTL_MS: {
+    DASHBOARD: 60 * 1000,       // 60s
+    ACTIONS: 45 * 1000,         // 45s
+    CUSTOMERS: 5 * 60 * 1000,   // 5 min
+    INVOICES: 3 * 60 * 1000,    // 3 min
+    PAYMENTS: 3 * 60 * 1000,    // 3 min
+    FOLLOWUPS: 3 * 60 * 1000,   // 3 min
+    SETTINGS: 15 * 60 * 1000,   // 15 min
+    SUBSCRIPTION: 5 * 60 * 1000 // 5 min
+  }
+};
+
 const API_CONFIG = {
   // Replace with your Google Apps Script Web App deployment URL:
   // e.g., "https://script.google.com/macros/s/AKfycbx.../exec"
-  BASE_URL: "https://script.google.com/macros/s/AKfycbxmEMAba4hdonMPPMGMJYVzWroa8ZXBb8Rz6LKNM3aqQzmKstNxtucGzmf81icN-aeL/exec",
+  BASE_URL: "https://script.google.com/macros/s/AKfycbxhxNyBDBlRDA-D2Y4KQvzihYZ12H2AWFbX2XhliNm9Odp_g8jXvLsZSDeR-gvDQ4o5/exec",
 
   // Demo Mode: Disabled to enforce 100% Live Google Sheet data
   DEMO_MODE_IF_EMPTY: false,
 
-  REQUEST_TIMEOUT_MS: 20000
+  REQUEST_TIMEOUT_MS: 20000,
+  MAX_RETRIES: 1,
+  RETRY_DELAY_MS: 1200
 };
 
 const BRAND_CONFIG = {
@@ -25,9 +44,27 @@ const BRAND_CONFIG = {
   developerUrl: "https://websarthi.surajdx.com",
   poweredByName: "Suraj Automation",
   poweredByUrl: "http://surajdx.com",
-  primaryColor: "#4f46e5"
+  primaryColor: "#4f46e5",
+  accentColor: "#10b981",
+  logoUrl: "assets/brand/logo-mark.svg",
+  fullLogoUrl: "assets/brand/logo.svg"
 };
-
+/**
+ * SUBSCRIPTION CONFIGURATION & DYNAMIC PLAN MANAGEMENT
+ * NOTE: The definitions below serve as the offline/default fallback blueprint.
+ * In production, ALL plans, pricing, user/customer quotas, and feature flags
+ * are dynamically loaded and managed live from your Google Sheet ('Plans' tab in Master Spreadsheet).
+ *
+ * Supported Sheet Columns in 'Plans' tab:
+ *  - PlanID, PlanName, Badge, Description
+ *  - MonthlyPrice, YearlyPrice, MaxUsers, MaxCustomers
+ *  - ActionCenterLimit, ActionCenterPrioritySort (TRUE/FALSE)
+ *  - AgingAnalysis ("BASIC" or "FULL"), WhatsApp ("DIRECT" or "CUSTOM_TEMPLATES")
+ *  - PTPTracker (TRUE/FALSE), RiskScoring (TRUE/FALSE), DataImport (TRUE/FALSE)
+ *  - Support ("Standard" or "Priority")
+ *  - FeaturesList (Multiline bullets or JSON array. Supports enabled (+) / disabled (-) prefixes)
+ *  - IsRecommended (TRUE/FALSE), IsActive (TRUE/FALSE), SortOrder (1, 2, 3...)
+ */
 const SUBSCRIPTION_CONFIG = {
   RAZORPAY_KEY_ID: "rzp_live_Sugpl07IegaqDU",
   TRIAL_DAYS: 7,

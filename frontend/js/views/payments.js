@@ -38,13 +38,34 @@ const PaymentsView = {
 
   loadPayments: async function() {
     try {
-      const res = await Api.call("getPayments");
-      this.payments = res.payments || [];
-      this.renderTable();
+      const cached = Store.getWithStale("payments");
+      if (cached.data && cached.data.length > 0) {
+        this.payments = cached.data;
+        this.renderTable();
+
+        if (cached.isStale) {
+          Api.call("getPayments").then(res => {
+            if (res && res.payments) {
+              Store.setCached("payments", res.payments);
+              this.payments = res.payments;
+              this.renderTable();
+            }
+          }).catch(e => console.warn("Background revalidation failed for payments:", e));
+        }
+      } else {
+        const res = await Api.call("getPayments");
+        const payments = res.payments || [];
+        Store.setCached("payments", payments);
+        this.payments = payments;
+        this.renderTable();
+      }
     } catch (err) {
-      document.getElementById("payments-table-container").innerHTML = `
-        <div class="p-6 text-sm text-red-600">Failed to load payments: ${err.message}</div>
-      `;
+      const el = document.getElementById("payments-table-container");
+      if (el) {
+        el.innerHTML = `
+          <div class="p-6 text-sm text-red-600">Failed to load payments: ${err.message}</div>
+        `;
+      }
     }
   },
 

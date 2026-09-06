@@ -49,13 +49,34 @@ const InvoicesView = {
 
   loadInvoices: async function() {
     try {
-      const res = await Api.call("getInvoices");
-      this.invoices = res.invoices || [];
-      this.renderTable();
+      const cached = Store.getWithStale("invoices");
+      if (cached.data && cached.data.length > 0) {
+        this.invoices = cached.data;
+        this.renderTable();
+
+        if (cached.isStale) {
+          Api.call("getInvoices").then(res => {
+            if (res && res.invoices) {
+              Store.setCached("invoices", res.invoices);
+              this.invoices = res.invoices;
+              this.renderTable();
+            }
+          }).catch(e => console.warn("Background revalidation failed for invoices:", e));
+        }
+      } else {
+        const res = await Api.call("getInvoices");
+        const invoices = res.invoices || [];
+        Store.setCached("invoices", invoices);
+        this.invoices = invoices;
+        this.renderTable();
+      }
     } catch (err) {
-      document.getElementById("invoices-table-container").innerHTML = `
-        <div class="p-6 text-sm text-red-600">Failed to load invoices: ${err.message}</div>
-      `;
+      const el = document.getElementById("invoices-table-container");
+      if (el) {
+        el.innerHTML = `
+          <div class="p-6 text-sm text-red-600">Failed to load invoices: ${err.message}</div>
+        `;
+      }
     }
   },
 

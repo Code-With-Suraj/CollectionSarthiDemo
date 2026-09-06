@@ -22,13 +22,33 @@ const SettingsView = {
 
   loadSettings: async function() {
     try {
-      const res = await Api.call("getSettings");
-      this.settings = res.settings || {};
-      this.renderForm();
+      const cached = Store.getWithStale("settings");
+      if (cached.data && Object.keys(cached.data).length > 0) {
+        this.settings = cached.data;
+        this.renderForm();
+
+        if (cached.isStale) {
+          Api.call("getSettings").then(res => {
+            if (res && res.settings) {
+              Store.setCached("settings", res.settings);
+              this.settings = res.settings;
+              this.renderForm();
+            }
+          }).catch(e => console.warn("Background revalidation failed for settings:", e));
+        }
+      } else {
+        const res = await Api.call("getSettings");
+        this.settings = res.settings || {};
+        Store.setCached("settings", this.settings);
+        this.renderForm();
+      }
     } catch (err) {
-      document.getElementById("settings-content").innerHTML = `
-        <div class="p-6 text-sm text-red-600">Failed to load settings: ${err.message}</div>
-      `;
+      const el = document.getElementById("settings-content");
+      if (el) {
+        el.innerHTML = `
+          <div class="p-6 text-sm text-red-600">Failed to load settings: ${err.message}</div>
+        `;
+      }
     }
   },
 
@@ -201,7 +221,7 @@ const SettingsView = {
     try {
       await Api.call("updateSettings", { settings });
       Toast.success("Settings saved successfully!");
-      Store.state.settings = settings;
+      Store.setCached("settings", settings);
     } catch (err) {
       Toast.error(err.message || "Failed to update settings");
     } finally {

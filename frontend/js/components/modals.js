@@ -21,14 +21,19 @@ const Modals = {
    */
   openRecordPayment: async function(prefill = {}) {
     if (!this.container) this.init();
-    const requestId = Utils.generateRequestId("PAY");
-    let customers = Store.getCached("customers") || Store.state.customers || [];
+    const custData = Store.getWithStale("customers");
+    let customers = custData.data || Store.state.customers || [];
     if (!customers || customers.length === 0) {
       try {
         const res = await Api.call("getCustomers");
         customers = res.customers || [];
         Store.setCached("customers", customers);
       } catch (e) {}
+    } else if (custData.isStale) {
+      // Silently refresh in background without blocking modal
+      Api.call("getCustomers").then(res => {
+        if (res && res.customers) Store.setCached("customers", res.customers);
+      }).catch(e => {});
     }
     const invoices = Store.state.invoices || [];
 
@@ -144,7 +149,8 @@ const Modals = {
     if (customerId === "Select Customer in Form") customerId = "";
 
     // Load customers from Store or API
-    let customers = Store.getCached("customers") || Store.state.customers || [];
+    const custData = Store.getWithStale("customers");
+    let customers = custData.data || Store.state.customers || [];
     if (!customers || customers.length === 0) {
       try {
         const res = await Api.call("getCustomers");
@@ -153,6 +159,10 @@ const Modals = {
       } catch (e) {
         console.warn("Could not load customers for follow-up modal:", e);
       }
+    } else if (custData.isStale) {
+      Api.call("getCustomers").then(res => {
+        if (res && res.customers) Store.setCached("customers", res.customers);
+      }).catch(e => {});
     }
     this._followUpCustomers = customers;
 
@@ -881,7 +891,7 @@ const Modals = {
 
     // Ensure customers are in cache for invoice/payment customer lookups
     if (entityType !== "customers") {
-      let custs = Store.getCached("customers");
+      let custs = (Store.getWithStale("customers").data) || Store.state.customers;
       if (!custs || custs.length === 0) {
         try {
           const res = await Api.call("getCustomers");
@@ -1153,7 +1163,7 @@ const Modals = {
       });
     }
 
-    const cachedCustomers = Store.getCached("customers") || [];
+    const cachedCustomers = (Store.getWithStale("customers").data) || Store.state.customers || [];
     const validRows = [];
     const invalidRows = [];
 

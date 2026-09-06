@@ -28,13 +28,34 @@ const FollowUpsView = {
 
   loadFollowUps: async function() {
     try {
-      const res = await Api.call("getFollowUps");
-      this.followups = res.followups || [];
-      this.renderTable();
+      const cached = Store.getWithStale("followups");
+      if (cached.data && cached.data.length > 0) {
+        this.followups = cached.data;
+        this.renderTable();
+
+        if (cached.isStale) {
+          Api.call("getFollowUps").then(res => {
+            if (res && res.followups) {
+              Store.setCached("followups", res.followups);
+              this.followups = res.followups;
+              this.renderTable();
+            }
+          }).catch(e => console.warn("Background revalidation failed for followups:", e));
+        }
+      } else {
+        const res = await Api.call("getFollowUps");
+        const followups = res.followups || [];
+        Store.setCached("followups", followups);
+        this.followups = followups;
+        this.renderTable();
+      }
     } catch (err) {
-      document.getElementById("followups-table-container").innerHTML = `
-        <div class="p-6 text-sm text-red-600">Failed to load follow-ups: ${err.message}</div>
-      `;
+      const el = document.getElementById("followups-table-container");
+      if (el) {
+        el.innerHTML = `
+          <div class="p-6 text-sm text-red-600">Failed to load follow-ups: ${err.message}</div>
+        `;
+      }
     }
   },
 

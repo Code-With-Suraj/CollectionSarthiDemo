@@ -36,19 +36,35 @@ const DashboardView = {
     `;
 
     try {
-      let data = Store.getCached("dashboard");
-      if (!data) {
-        data = await Api.call("getDashboard");
-        Store.setCached("dashboard", data);
-      }
+      const cached = Store.getWithStale("dashboard");
+      if (cached.data) {
+        // Instant 0ms perceived render from warm cache
+        this.populateDashboard(cached.data);
 
-      this.populateDashboard(data);
+        // If stale, silently revalidate in the background
+        if (cached.isStale) {
+          Api.call("getDashboard").then(fresh => {
+            if (fresh) {
+              Store.setCached("dashboard", fresh);
+              this.populateDashboard(fresh);
+            }
+          }).catch(e => console.warn("Background revalidation failed for dashboard:", e));
+        }
+      } else {
+        // Cold start - show loader and fetch
+        const fresh = await Api.call("getDashboard");
+        Store.setCached("dashboard", fresh);
+        this.populateDashboard(fresh);
+      }
     } catch (err) {
-      document.getElementById("dashboard-loader").innerHTML = `
-        <div class="col-span-full p-6 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm">
-          Failed to load dashboard: ${err.message}. Please check your backend connection.
-        </div>
-      `;
+      const loader = document.getElementById("dashboard-loader");
+      if (loader) {
+        loader.innerHTML = `
+          <div class="col-span-full p-6 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm">
+            Failed to load dashboard: ${err.message}. Please check your backend connection.
+          </div>
+        `;
+      }
     }
   },
 
