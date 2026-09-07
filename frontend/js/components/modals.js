@@ -36,6 +36,10 @@ const Modals = {
       }).catch(e => {});
     }
     const invoices = Store.state.invoices || [];
+    const requestId = (typeof Utils !== "undefined" && Utils.generateRequestId)
+      ? Utils.generateRequestId("PAY")
+      : ("PAY-" + Date.now());
+    const invoiceId = prefill.invoiceId || prefill.InvoiceID || "";
 
     const custOptions = customers.map(c => `
       <option value="${c.CustomerID}" ${prefill.customerId === c.CustomerID ? "selected" : ""}>
@@ -59,6 +63,7 @@ const Modals = {
 
           <form id="payment-form" class="p-6 space-y-4" onsubmit="Modals.submitPayment(event, '${requestId}')">
             <input type="hidden" name="requestId" value="${requestId}">
+            <input type="hidden" name="InvoiceID" value="${invoiceId}">
 
             <div>
               <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Customer <span class="text-red-500">*</span></label>
